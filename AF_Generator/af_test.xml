@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AccessTimeseriesSet template_version="6.7" full_code="$TS_FULL_CODE" soid="" xmlns:link="urn:eu:damas:metadata:link" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <ObjectProperties>
+    <Name culture="en-US">$TS_NAME</Name>
+    <ShortName culture="en-US" />
+    <Annotation culture="en-US" />
+    <Parent link:full_code="$PARENT_FULL_CODE" link:soid="" />
+    <ObjectClass link:code="BUL" />
+    <Order />
+  </ObjectProperties>
+  <Dimensions>
+    <TimeDimension link:dim_code="$TIME_DIMENSION" />
+    <BusinessDimension dimension_type="CODE_TABLE" link:dim_code="$BUSINESS_DIMENSION_1" alias_code="">
+      <AliasName culture="en-US" />
+      <AliasShortName culture="en-US" />
+      <Order>0</Order>
+    </BusinessDimension>
+    <BusinessDimension dimension_type="CODE_TABLE" link:dim_code="$BUSINESS_DIMENSION_2" alias_code="">
+      <AliasName culture="en-US" />
+      <AliasShortName culture="en-US" />
+      <Order>1</Order>
+    </BusinessDimension>
+  </Dimensions>
+  <Permissions>
+    <DefaultAccessMode link:full_code="\SS_SYS\SS_SYS_PERMISSIONS\INTERNAL_LOCAL_WRITE_ACTIVE_READ" link:soid="" />
+  </Permissions>
+  <DBViewName>$AF_NAME</DBViewName>
+  <TimeseriesList>
+    <Timeseries link:full_code="$AF_TIME_SERIES_FULL_CODE1" link:soid="">
+      <Alias>$AF_TIME_SERIES_ALIAS1</Alias>
+      <Type>$AF_TYPE</Type>
+      <ColName>$AF_COLUMN_NAME</ColName>
+      <ShowValueState>true</ShowValueState>
+      <ShowValueCorrection>false</ShowValueCorrection>
+      <FilterDeleted>false</FilterDeleted>
+      <ShowModificationInformation>false</ShowModificationInformation>
+      <DimensionsMapping>
+        <MappingType link:code="AUTOMATIC" />
+      </DimensionsMapping>
+    </Timeseries>
+    <Timeseries link:full_code="$AF_TIME_SERIES_FULL_CODE1" link:soid="">
+      <Alias>$AF_TIME_SERIES_ALIAS1</Alias>
+      <Type>$AF_TYPE</Type>
+      <ColName>$AF_COLUMN_NAME</ColName>
+      <ShowValueState>true</ShowValueState>
+      <ShowValueCorrection>false</ShowValueCorrection>
+      <FilterDeleted>false</FilterDeleted>
+      <ShowModificationInformation>false</ShowModificationInformation>
+      <DimensionsMapping>
+        <MappingType link:code="AUTOMATIC" />
+      </DimensionsMapping>
+    </Timeseries>
+    <Timeseries link:full_code="$AF_TIME_SERIES_FULL_CODE1" link:soid="">
+      <Alias>$AF_TIME_SERIES_ALIAS1</Alias>
+      <Type>$AF_TYPE</Type>
+      <ColName>$AF_COLUMN_NAME</ColName>
+      <ShowValueState>true</ShowValueState>
+      <ShowValueCorrection>false</ShowValueCorrection>
+      <FilterDeleted>false</FilterDeleted>
+      <ShowModificationInformation>false</ShowModificationInformation>
+      <DimensionsMapping>
+        <MappingType link:code="AUTOMATIC" />
+      </DimensionsMapping>
+    </Timeseries>
+    <Timeseries link:full_code="$AF_TIME_SERIES_FULL_CODE1" link:soid="">
+      <Alias>$AF_TIME_SERIES_ALIAS1</Alias>
+      <Type>$AF_TYPE</Type>
+      <ColName>$AF_COLUMN_NAME</ColName>
+      <ShowValueState>true</ShowValueState>
+      <ShowValueCorrection>false</ShowValueCorrection>
+      <FilterDeleted>false</FilterDeleted>
+      <ShowModificationInformation>false</ShowModificationInformation>
+      <DimensionsMapping>
+        <MappingType link:code="AUTOMATIC" />
+      </DimensionsMapping>
+    </Timeseries>
+  </TimeseriesList>
+</AccessTimeseriesSet>
