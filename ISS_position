@@ -1,0 +1,16 @@
+import requests
+import json
+
+response = requests.get("http://api.open-notify.org/iss-now.json")
+
+# Parse the response as JSON
+data = response.json()
+
+# Extract latitude and longitude from the 'iss_position' dictionary
+latitude = data["iss_position"]["latitude"]
+longitude = data["iss_position"]["longitude"]
+
+print("Latitude:", latitude)
+print("Longitude:", longitude)
+
+# https://www.latlong.net/

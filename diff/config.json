@@ -1,0 +1,19 @@
+{
+    "dev_zip": "/Users/pavelstritesky/Desktop/Deployment/2.6.1/DEV/DEV.zip",
+    "test_zip": "/Users/pavelstritesky/Desktop/Deployment/2.6.1/SOURCE/TEST.zip",
+    "output_zip": "/Users/pavelstritesky/Desktop/Deployment/2.6.1/DIFF/DIFF.zip",
+    "work_dir": "/Users/pavelstritesky/Desktop/Deployment/2.6.1/temp",
+    "keep_temp": false,
+    "ignore_patterns": [
+        ".git",
+        "node_modules",
+        "__pycache__",
+        ".idea",
+        ".vscode",
+        ".env",
+        "*.pyc",
+        "*.pyo",
+        "*.pyd",
+        "*.so"
+    ]
+}
