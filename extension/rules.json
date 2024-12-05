@@ -1,0 +1,45 @@
+[
+    {
+      "id": 1,
+      "priority": 1,
+      "action": {
+        "type": "redirect",
+        "redirect": {
+          "url": "chrome-extension://__MSG_@@extension_id__/blocked.html"
+        }
+      },
+      "condition": {
+        "urlFilter": "*://*.facebook.com/*",
+        "resourceTypes": ["main_frame"]
+      }
+    },
+    {
+      "id": 2,
+      "priority": 1,
+      "action": {
+        "type": "redirect",
+        "redirect": {
+          "url": "chrome-extension://__MSG_@@extension_id__/blocked.html"
+        }
+      },
+      "condition": {
+        "urlFilter": "*://*.twitter.com/*",
+        "resourceTypes": ["main_frame"]
+      }
+    },
+    {
+      "id": 3,
+      "priority": 1,
+      "action": {
+        "type": "redirect",
+        "redirect": {
+          "url": "chrome-extension://__MSG_@@extension_id__/blocked.html"
+        }
+      },
+      "condition": {
+        "urlFilter": "*://*.instagram.com/*",
+        "resourceTypes": ["main_frame"]
+      }
+    }
+  ]
+  
