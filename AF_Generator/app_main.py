@@ -5,6 +5,7 @@ import zipfile
 import xml
 
 # Načtení JSON dat
+# Načtení JSON dat
 with open("variables_list.json", "r", encoding="utf-8") as json_file:
     data_list = json.load(json_file)
 
