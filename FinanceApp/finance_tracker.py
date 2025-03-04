@@ -9,6 +9,15 @@ from datetime import datetime
 DATA_FILE = "finance_data.json"
 HISTORY_FILE = "finance_history.json"
 
+
+def remove_history_entry(category, timestamp):
+    """Odstraní konkrétní historický záznam dle kategorie a časového razítka."""
+    data = load_data()
+    if "history" in data:
+        data["history"] = [entry for entry in data["history"] if not (entry["category"] == category and entry["timestamp"] == timestamp)]
+        save_data(data)
+
+
 def load_data():
     try:
         with open(DATA_FILE, "r") as file:
@@ -144,6 +153,23 @@ if history_list:
 else:
     st.write("🔍 Zatím žádné změny nejsou zaznamenány.")
 
+if "history" in data and data["history"]:
+    history_df = pd.DataFrame(data["history_df"])
+    
+    # Zobrazení tabulky historie
+    for index, row in history_df.iterrows():
+        col1, col2, col3 = st.columns([3, 2, 1])
+        with col1:
+            st.write(f"**{row['category']}**: {row['amount']:,.0f} Kč")
+        with col2:
+            st.write(row["timestamp"])
+        with col3:
+            if st.button("🗑️", key=f"delete_{index}"):
+                remove_history_entry(row["category"], row["timestamp"])
+                st.rerun()  # Obnovení UI po odstranění záznamu
+else:
+    st.write("Žádné historické záznamy nejsou k dispozici.")
+
 # **📈 Graf vývoje financí v čase**
 st.subheader("📈 Vývoj financí v čase")
 
@@ -156,3 +182,8 @@ if history_list:
     st.plotly_chart(fig_line, use_container_width=True)
 else:
     st.write("📉 Zatím nejsou dostupná historická data pro zobrazení grafu.")
+
+
+
+
+

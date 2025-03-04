@@ -44,5 +44,37 @@
             "new_value": 30000,
             "timestamp": "2025-03-02 22:14:22"
         }
+    ],
+    "portu_majda": [
+        {
+            "old_value": 540000,
+            "new_value": 550000,
+            "timestamp": "2025-03-03 20:59:44"
+        },
+        {
+            "old_value": 550000,
+            "new_value": 570000,
+            "timestamp": "2025-03-03 21:00:31"
+        },
+        {
+            "old_value": 570000,
+            "new_value": 600000,
+            "timestamp": "2025-03-03 21:01:04"
+        },
+        {
+            "old_value": 600000,
+            "new_value": 550000,
+            "timestamp": "2025-03-03 21:01:47"
+        },
+        {
+            "old_value": 550000,
+            "new_value": 500000,
+            "timestamp": "2025-03-03 21:02:15"
+        },
+        {
+            "old_value": 500000,
+            "new_value": 122222,
+            "timestamp": "2025-03-03 21:05:11"
+        }
     ]
 }

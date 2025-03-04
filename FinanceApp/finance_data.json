@@ -160,36 +160,8 @@
     ],
     "portu_majda": [
         {
-            "description": "Portu - Majda",
-            "amount": 540000,
-            "history": [
-                {
-                    "old_value": 540000,
-                    "new_value": 540000,
-                    "timestamp": "2025-03-02 22:04:58"
-                },
-                {
-                    "old_value": 540000,
-                    "new_value": 540000,
-                    "timestamp": "2025-03-02 22:06:02"
-                },
-                {
-                    "old_value": 540000,
-                    "new_value": 540000,
-                    "timestamp": "2025-03-02 22:06:31"
-                },
-                {
-                    "old_value": 540000,
-                    "new_value": 540000,
-                    "timestamp": "2025-03-02 22:06:42"
-                },
-                {
-                    "old_value": 540000,
-                    "new_value": 540000,
-                    "timestamp": "2025-03-02 22:06:44"
-                }
-            ],
-            "updated_at": "2025-03-02 22:06:44"
+            "description": "Portu Majda",
+            "amount": 122222
         }
     ],
     "deposit_flat": [
