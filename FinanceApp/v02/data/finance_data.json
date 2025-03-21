@@ -1,8 +1,50 @@
 {
+    "Bydlen\u00ed": [
+        {
+            "description": "Bydlen\u00ed",
+            "amount": 3000.0
+        }
+    ],
+    "amundi_majda": [
+        {
+            "description": "Amundi - Majda",
+            "amount": 390000.0
+        }
+    ],
+    "cryptocurrency": [
+        {
+            "description": "Cryptocurrency",
+            "amount": 12121.0
+        }
+    ],
+    "csob_medium": [
+        {
+            "description": "\u010cSOB Medium",
+            "amount": 102000.0
+        }
+    ],
+    "deposit_flat": [
+        {
+            "description": "Z\u00e1loha bytu",
+            "amount": 11000.0
+        }
+    ],
+    "fiat_czk": [
+        {
+            "description": "Fiat CZK",
+            "amount": 100000.0
+        }
+    ],
+    "insurance": [
+        {
+            "description": "NN Poji\u0161t\u011bn\u00ed",
+            "amount": 2222.0
+        }
+    ],
     "investments": [
         {
             "description": "Investice",
-            "amount": 1400000
+            "amount": 1400000.0
         },
         {
             "description": "test",
@@ -21,486 +63,76 @@
             "amount": 122112.0
         }
     ],
-    "real_estate": [
+    "land_majda": [
         {
-            "description": "Nemovitosti",
-            "amount": 30000
-        },
+            "description": "Pole - Majda",
+            "amount": 500000.0
+        }
+    ],
+    "mintos": [
+        {
+            "description": "Mintos",
+            "amount": 22222.0
+        }
+    ],
+    "pension_savings_csob": [
+        {
+            "description": "Penzijn\u00ed spo\u0159en\u00ed - \u010cSOB",
+            "amount": 160000.0
+        }
+    ],
+    "portu_etf": [
+        {
+            "description": "Portu - ETF",
+            "amount": 490000.0
+        }
+    ],
+    "portu_majda": [
+        {
+            "description": "Portu - Majda",
+            "amount": 540000.0
+        }
+    ],
+    "real_estate": [
         {
             "description": "asas",
             "amount": 2323232.0
+        },
+        {
+            "description": "Nemovitosti",
+            "amount": 30000.0
         }
     ],
     "retirement_savings": [
         {
-            "description": "D\u016fchodov\u00e9 spo\u0159en\u00ed",
-            "amount": 100000
-        },
-        {
             "description": "pavel",
             "amount": 1000000.0
+        },
+        {
+            "description": "D\u016fchodov\u00e9 spo\u0159en\u00ed",
+            "amount": 100000.0
         },
         {
             "description": "pavel",
             "amount": 121212.0
         }
     ],
-    "cryptocurrency": [
+    "test": [
         {
-            "description": "Cryptocurrency",
-            "amount": 12121.0,
-            "history": [
-                {
-                    "old_value": 440000,
-                    "new_value": 440000,
-                    "timestamp": "2025-03-02 22:04:58"
-                },
-                {
-                    "old_value": 440000,
-                    "new_value": 2222222,
-                    "timestamp": "2025-03-02 22:06:02"
-                },
-                {
-                    "old_value": 2222222,
-                    "new_value": 2222222,
-                    "timestamp": "2025-03-02 22:06:31"
-                },
-                {
-                    "old_value": 2222222,
-                    "new_value": 2222222,
-                    "timestamp": "2025-03-02 22:06:42"
-                },
-                {
-                    "old_value": 2222222,
-                    "new_value": 2222222,
-                    "timestamp": "2025-03-02 22:06:44"
-                }
-            ],
-            "updated_at": "2025-03-02 22:06:44"
-        }
-    ],
-    "mintos": [
-        {
-            "description": "Mintos",
-            "amount": 22222,
-            "history": [
-                {
-                    "old_value": 52000,
-                    "new_value": 52000,
-                    "timestamp": "2025-03-02 22:04:58"
-                },
-                {
-                    "old_value": 52000,
-                    "new_value": 52000,
-                    "timestamp": "2025-03-02 22:06:02"
-                },
-                {
-                    "old_value": 52000,
-                    "new_value": 52000,
-                    "timestamp": "2025-03-02 22:06:31"
-                },
-                {
-                    "old_value": 52000,
-                    "new_value": 52000,
-                    "timestamp": "2025-03-02 22:06:42"
-                },
-                {
-                    "old_value": 52000,
-                    "new_value": 52000,
-                    "timestamp": "2025-03-02 22:06:44"
-                },
-                {
-                    "old_value": 52000,
-                    "new_value": 22222,
-                    "timestamp": "2025-03-02 22:09:10"
-                }
-            ],
-            "updated_at": "2025-03-02 22:09:10"
+            "description": "test",
+            "amount": 20002.0
         }
     ],
     "xtb_etf": [
         {
             "description": "XTB - ETF",
-            "amount": 640000,
-            "history": [
-                {
-                    "old_value": 640000,
-                    "new_value": 640000,
-                    "timestamp": "2025-03-02 22:04:58"
-                },
-                {
-                    "old_value": 640000,
-                    "new_value": 640000,
-                    "timestamp": "2025-03-02 22:06:02"
-                },
-                {
-                    "old_value": 640000,
-                    "new_value": 640000,
-                    "timestamp": "2025-03-02 22:06:31"
-                },
-                {
-                    "old_value": 640000,
-                    "new_value": 640000,
-                    "timestamp": "2025-03-02 22:06:42"
-                },
-                {
-                    "old_value": 640000,
-                    "new_value": 640000,
-                    "timestamp": "2025-03-02 22:06:44"
-                }
-            ],
-            "updated_at": "2025-03-02 22:06:44"
-        }
-    ],
-    "pension_savings_csob": [
-        {
-            "description": "Penzijn\u00ed spo\u0159en\u00ed - \u010cSOB",
-            "amount": 160000,
-            "history": [
-                {
-                    "old_value": 160000,
-                    "new_value": 160000,
-                    "timestamp": "2025-03-02 22:04:58"
-                },
-                {
-                    "old_value": 160000,
-                    "new_value": 160000,
-                    "timestamp": "2025-03-02 22:06:02"
-                },
-                {
-                    "old_value": 160000,
-                    "new_value": 160000,
-                    "timestamp": "2025-03-02 22:06:31"
-                },
-                {
-                    "old_value": 160000,
-                    "new_value": 160000,
-                    "timestamp": "2025-03-02 22:06:42"
-                },
-                {
-                    "old_value": 160000,
-                    "new_value": 160000,
-                    "timestamp": "2025-03-02 22:06:44"
-                }
-            ],
-            "updated_at": "2025-03-02 22:06:44"
-        }
-    ],
-    "portu_majda": [
-        {
-            "description": "Portu - Majda",
-            "amount": 540000,
-            "history": [
-                {
-                    "old_value": 540000,
-                    "new_value": 540000,
-                    "timestamp": "2025-03-02 22:04:58"
-                },
-                {
-                    "old_value": 540000,
-                    "new_value": 540000,
-                    "timestamp": "2025-03-02 22:06:02"
-                },
-                {
-                    "old_value": 540000,
-                    "new_value": 540000,
-                    "timestamp": "2025-03-02 22:06:31"
-                },
-                {
-                    "old_value": 540000,
-                    "new_value": 540000,
-                    "timestamp": "2025-03-02 22:06:42"
-                },
-                {
-                    "old_value": 540000,
-                    "new_value": 540000,
-                    "timestamp": "2025-03-02 22:06:44"
-                }
-            ],
-            "updated_at": "2025-03-02 22:06:44"
-        }
-    ],
-    "deposit_flat": [
-        {
-            "description": "Z\u00e1loha bytu",
-            "amount": 11000,
-            "history": [
-                {
-                    "old_value": 11000,
-                    "new_value": 11000,
-                    "timestamp": "2025-03-02 22:04:58"
-                },
-                {
-                    "old_value": 11000,
-                    "new_value": 11000,
-                    "timestamp": "2025-03-02 22:06:02"
-                },
-                {
-                    "old_value": 11000,
-                    "new_value": 11000,
-                    "timestamp": "2025-03-02 22:06:31"
-                },
-                {
-                    "old_value": 11000,
-                    "new_value": 11000,
-                    "timestamp": "2025-03-02 22:06:42"
-                },
-                {
-                    "old_value": 11000,
-                    "new_value": 11000,
-                    "timestamp": "2025-03-02 22:06:44"
-                }
-            ],
-            "updated_at": "2025-03-02 22:06:44"
-        }
-    ],
-    "portu_etf": [
-        {
-            "description": "Portu - ETF",
-            "amount": 490000,
-            "history": [
-                {
-                    "old_value": 490000,
-                    "new_value": 490000,
-                    "timestamp": "2025-03-02 22:04:58"
-                },
-                {
-                    "old_value": 490000,
-                    "new_value": 490000,
-                    "timestamp": "2025-03-02 22:06:02"
-                },
-                {
-                    "old_value": 490000,
-                    "new_value": 490000,
-                    "timestamp": "2025-03-02 22:06:31"
-                },
-                {
-                    "old_value": 490000,
-                    "new_value": 490000,
-                    "timestamp": "2025-03-02 22:06:42"
-                },
-                {
-                    "old_value": 490000,
-                    "new_value": 490000,
-                    "timestamp": "2025-03-02 22:06:44"
-                }
-            ],
-            "updated_at": "2025-03-02 22:06:44"
-        }
-    ],
-    "amundi_majda": [
-        {
-            "description": "Amundi - Majda",
-            "amount": 390000,
-            "history": [
-                {
-                    "old_value": 390000,
-                    "new_value": 390000,
-                    "timestamp": "2025-03-02 22:04:58"
-                },
-                {
-                    "old_value": 390000,
-                    "new_value": 390000,
-                    "timestamp": "2025-03-02 22:06:02"
-                },
-                {
-                    "old_value": 390000,
-                    "new_value": 390000,
-                    "timestamp": "2025-03-02 22:06:31"
-                },
-                {
-                    "old_value": 390000,
-                    "new_value": 390000,
-                    "timestamp": "2025-03-02 22:06:42"
-                },
-                {
-                    "old_value": 390000,
-                    "new_value": 390000,
-                    "timestamp": "2025-03-02 22:06:44"
-                }
-            ],
-            "updated_at": "2025-03-02 22:06:44"
+            "amount": 640000.0
         }
     ],
     "xtb_majda": [
         {
             "description": "XTB - Majda",
-            "amount": 80000,
-            "history": [
-                {
-                    "old_value": 80000,
-                    "new_value": 80000,
-                    "timestamp": "2025-03-02 22:04:58"
-                },
-                {
-                    "old_value": 80000,
-                    "new_value": 80000,
-                    "timestamp": "2025-03-02 22:06:02"
-                },
-                {
-                    "old_value": 80000,
-                    "new_value": 80000,
-                    "timestamp": "2025-03-02 22:06:31"
-                },
-                {
-                    "old_value": 80000,
-                    "new_value": 80000,
-                    "timestamp": "2025-03-02 22:06:42"
-                },
-                {
-                    "old_value": 80000,
-                    "new_value": 80000,
-                    "timestamp": "2025-03-02 22:06:44"
-                }
-            ],
-            "updated_at": "2025-03-02 22:06:44"
-        }
-    ],
-    "land_majda": [
-        {
-            "description": "Pole - Majda",
-            "amount": 500000,
-            "history": [
-                {
-                    "old_value": 500000,
-                    "new_value": 500000,
-                    "timestamp": "2025-03-02 22:04:58"
-                },
-                {
-                    "old_value": 500000,
-                    "new_value": 500000,
-                    "timestamp": "2025-03-02 22:06:02"
-                },
-                {
-                    "old_value": 500000,
-                    "new_value": 500000,
-                    "timestamp": "2025-03-02 22:06:31"
-                },
-                {
-                    "old_value": 500000,
-                    "new_value": 500000,
-                    "timestamp": "2025-03-02 22:06:42"
-                },
-                {
-                    "old_value": 500000,
-                    "new_value": 500000,
-                    "timestamp": "2025-03-02 22:06:44"
-                }
-            ],
-            "updated_at": "2025-03-02 22:06:44"
-        }
-    ],
-    "fiat_czk": [
-        {
-            "description": "Fiat CZK",
-            "amount": 100000,
-            "history": [
-                {
-                    "old_value": 100000,
-                    "new_value": 100000,
-                    "timestamp": "2025-03-02 22:04:58"
-                },
-                {
-                    "old_value": 100000,
-                    "new_value": 100000,
-                    "timestamp": "2025-03-02 22:06:02"
-                },
-                {
-                    "old_value": 100000,
-                    "new_value": 100000,
-                    "timestamp": "2025-03-02 22:06:31"
-                },
-                {
-                    "old_value": 100000,
-                    "new_value": 100000,
-                    "timestamp": "2025-03-02 22:06:42"
-                },
-                {
-                    "old_value": 100000,
-                    "new_value": 100000,
-                    "timestamp": "2025-03-02 22:06:44"
-                }
-            ],
-            "updated_at": "2025-03-02 22:06:44"
-        }
-    ],
-    "csob_medium": [
-        {
-            "description": "\u010cSOB Medium",
-            "amount": 102000,
-            "history": [
-                {
-                    "old_value": 102000,
-                    "new_value": 102000,
-                    "timestamp": "2025-03-02 22:04:58"
-                },
-                {
-                    "old_value": 102000,
-                    "new_value": 102000,
-                    "timestamp": "2025-03-02 22:06:02"
-                },
-                {
-                    "old_value": 102000,
-                    "new_value": 102000,
-                    "timestamp": "2025-03-02 22:06:31"
-                },
-                {
-                    "old_value": 102000,
-                    "new_value": 102000,
-                    "timestamp": "2025-03-02 22:06:42"
-                },
-                {
-                    "old_value": 102000,
-                    "new_value": 102000,
-                    "timestamp": "2025-03-02 22:06:44"
-                }
-            ],
-            "updated_at": "2025-03-02 22:06:44"
-        }
-    ],
-    "insurance": [
-        {
-            "description": "NN Poji\u0161t\u011bn\u00ed",
-            "amount": 2222,
-            "history": [
-                {
-                    "old_value": 61000,
-                    "new_value": 61000,
-                    "timestamp": "2025-03-02 22:04:58"
-                },
-                {
-                    "old_value": 61000,
-                    "new_value": 61000,
-                    "timestamp": "2025-03-02 22:06:02"
-                },
-                {
-                    "old_value": 61000,
-                    "new_value": 61000,
-                    "timestamp": "2025-03-02 22:06:31"
-                },
-                {
-                    "old_value": 61000,
-                    "new_value": 61000,
-                    "timestamp": "2025-03-02 22:06:42"
-                },
-                {
-                    "old_value": 61000,
-                    "new_value": 61000,
-                    "timestamp": "2025-03-02 22:06:44"
-                },
-                {
-                    "old_value": 61000,
-                    "new_value": 2222,
-                    "timestamp": "2025-03-02 22:08:49"
-                }
-            ],
-            "updated_at": "2025-03-02 22:08:49"
-        }
-    ],
-    "test": [
-        {
-            "description": "test",
-            "amount": 20002.0
+            "amount": 80000.0
         }
     ]
 }
