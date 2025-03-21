@@ -1,1 +1,56 @@
-[]
+[
+    {
+        "category": "investments",
+        "old_value": 1610000.0,
+        "new_value": 1212212.0,
+        "timestamp": "2025-03-21T07:57:12.739229"
+    },
+    {
+        "category": "real_estate",
+        "old_value": 52222.0,
+        "new_value": 2323232.0,
+        "timestamp": "2025-03-21T08:01:20.710489"
+    },
+    {
+        "category": "retirement_savings",
+        "old_value": 2100000.0,
+        "new_value": 121121212.0,
+        "timestamp": "2025-03-21T08:01:23.399624"
+    },
+    {
+        "category": "cryptocurrency",
+        "old_value": 2222222,
+        "new_value": 12121.0,
+        "timestamp": "2025-03-21T08:01:26.946284"
+    },
+    {
+        "category": "investments",
+        "old_value": 2822212.0,
+        "new_value": 121212.0,
+        "timestamp": "2025-03-21T08:01:33.628975"
+    },
+    {
+        "category": "investments",
+        "old_value": 1731212.0,
+        "new_value": 24242423.0,
+        "timestamp": "2025-03-21T08:01:36.357792"
+    },
+    {
+        "category": "investments",
+        "old_value": 25852423.0,
+        "new_value": 121212.0,
+        "timestamp": "2025-03-21T08:01:38.566167"
+    },
+    {
+        "category": "investments",
+        "old_value": 1731212.0,
+        "new_value": 122112.0,
+        "timestamp": "2025-03-21T08:01:41.287633"
+    },
+    {
+        "category": "retirement_savings",
+        "old_value": 122221212.0,
+        "new_value": 121212.0,
+        "timestamp": "2025-03-21T08:03:13.194901"
+    }
+]

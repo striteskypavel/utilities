@@ -18,7 +18,7 @@
         },
         {
             "description": "test2",
-            "amount": 0.0
+            "amount": 122112.0
         }
     ],
     "real_estate": [
@@ -28,7 +28,7 @@
         },
         {
             "description": "asas",
-            "amount": 22222.0
+            "amount": 2323232.0
         }
     ],
     "retirement_savings": [
@@ -42,13 +42,13 @@
         },
         {
             "description": "pavel",
-            "amount": 1000000.0
+            "amount": 121212.0
         }
     ],
     "cryptocurrency": [
         {
             "description": "Cryptocurrency",
-            "amount": 2222222,
+            "amount": 12121.0,
             "history": [
                 {
                     "old_value": 440000,
@@ -495,6 +495,12 @@
                 }
             ],
             "updated_at": "2025-03-02 22:08:49"
+        }
+    ],
+    "test": [
+        {
+            "description": "test",
+            "amount": 20002.0
         }
     ]
 }

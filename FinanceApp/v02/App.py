@@ -5,7 +5,7 @@ from datetime import datetime
 from data_manager import load_data, save_data, add_entry, remove_entry
 from visualizations import (
     show_pie_chart, show_history_chart, 
-    show_category_comparison, show_time_distribution
+    show_category_comparison
 )
 from history_manager import log_change, load_history, clear_history, delete_history_entries
 from config import DEFAULT_CATEGORIES
@@ -18,18 +18,45 @@ st.title("Jednoduchý sledovač financí")
 
 # **Vkládání finančních záznamů**
 st.subheader("Přidat finanční záznam")
-category = st.selectbox("Kategorie", DEFAULT_CATEGORIES + list(data.keys()))
-description = st.text_input("Popis")
-amount = st.number_input("Částka", min_value=0.0, format="%.2f")
-submit = st.button("Přidat")
 
-if submit and description:
-    old_value = sum(item["amount"] for item in data.get(category, []))
-    add_entry(category, description, amount)
-    new_value = sum(item["amount"] for item in data.get(category, []))
-    log_change(category, old_value, new_value)
-    st.success("Záznam přidán!")
-    st.rerun()
+# Přidání možnosti vytvořit novou kategorii nebo vybrat existující
+action_type = st.radio(
+    "Vyberte akci",
+    ["Vytvořit novou kategorii", "Upravit existující kategorii"],
+    horizontal=True
+)
+
+if action_type == "Vytvořit novou kategorii":
+    new_category = st.text_input("Název nové kategorie").strip()
+    
+    # Vytvoření řádku pro částku a tlačítka
+    col1, col2 = st.columns([3, 1])
+    
+    with col1:
+        amount = st.number_input("Částka", min_value=0, step=1000, format="%d")
+    
+    with col2:
+        if st.button("+"):
+            # Zaokrouhlení nahoru na nejbližší tisíc a přidání dalšího tisíce
+            amount = ((amount + 999) // 1000) * 1000 + 1000
+    
+    submit = st.button("Přidat")
+
+    if submit:
+        if not new_category:
+            st.error("Zadejte název kategorie!")
+        elif new_category in data:
+            st.error(f"Kategorie '{new_category}' již existuje! Použijte jinou kategorii nebo upravte existující.")
+        else:
+            add_entry(new_category, new_category, amount)  # Použijeme název kategorie jako popis
+            st.success(f"Vytvořena nová kategorie '{new_category}' a přidán záznam!")
+            st.rerun()
+else:
+    if data:
+        category = st.selectbox("Vyberte kategorii", sorted(data.keys()))
+        st.info(f"Pro úpravu kategorie '{category}' použijte tabulku níže v sekci 'Přehled financí'.")
+    else:
+        st.info("Zatím nejsou k dispozici žádné kategorie. Vytvořte nejprve novou kategorii.")
 
 # **Zobrazení přehledu financí**
 st.subheader("Přehled financí")
@@ -38,16 +65,46 @@ totals = {cat: sum(item["amount"] for item in data.get(cat, [])) for cat in data
 
 df = pd.DataFrame({
     "Kategorie": list(totals.keys()),
-    "Částka": [f"{value:,.0f} Kč" for value in totals.values()]
+    "Částka": list(totals.values())  # Ukládáme číselné hodnoty bez formátování
 })
 
-st.dataframe(df, use_container_width=True)
+# Vytvoření editovatelné tabulky
+edited_df = st.data_editor(
+    df,
+    column_config={
+        "Kategorie": st.column_config.TextColumn("Kategorie", disabled=True),
+        "Částka": st.column_config.NumberColumn(
+            "Částka",
+            help="Upravte částku přímo v tabulce",
+            min_value=0,
+            format="%.0f Kč"
+        )
+    },
+    use_container_width=True,
+    hide_index=True
+)
+
+# Kontrola změn a aktualizace dat
+if not df["Částka"].equals(edited_df["Částka"]):
+    for idx, row in edited_df.iterrows():
+        category = row["Kategorie"]
+        new_amount = row["Částka"]
+        old_amount = totals[category]
+        
+        if new_amount != old_amount:
+            # Aktualizace posledního záznamu v kategorii
+            if data[category]:
+                data[category][-1]["amount"] = new_amount
+                save_data(data)
+                log_change(category, old_amount, new_amount)
+                st.success(f"Částka pro kategorii '{category}' byla aktualizována!")
+                st.rerun()
 
 # **Vizualizace dat**
 st.header("Vizualizace dat")
 
 # Vytvoření záložek pro různé typy vizualizací
-viz_tabs = st.tabs(["Rozložení financí", "Historie změn", "Porovnání kategorií", "Časová distribuce"])
+viz_tabs = st.tabs(["Rozložení financí", "Historie změn", "Porovnání kategorií"])
 
 with viz_tabs[0]:
     st.subheader("Rozložení financí")
@@ -60,10 +117,6 @@ with viz_tabs[1]:
 with viz_tabs[2]:
     st.subheader("Porovnání kategorií")
     show_category_comparison(data)
-
-with viz_tabs[3]:
-    st.subheader("Časová distribuce")
-    show_time_distribution(history)  # Předáváme history místo data
 
 # **Historie změn - správa**
 st.header("Správa historie")

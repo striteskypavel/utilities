@@ -18,10 +18,42 @@ def show_pie_chart(totals):
         key="pie_chart_view_mode"  # Unikátní klíč
     )
     
-    if view_mode == "% podíl":
-        df_pie["Hodnota"] = df_pie["Hodnota"] / df_pie["Hodnota"].sum() * 100
+    # Vytvoříme kopii pro zachování původních hodnot
+    df_display = df_pie.copy()
     
-    fig_pie = px.pie(df_pie, names="Kategorie", values="Hodnota", title="Rozložení financí", hole=0.4, width=700, height=500)
+    if view_mode == "% podíl":
+        df_display["Hodnota"] = df_display["Hodnota"] / df_display["Hodnota"].sum() * 100
+        hover_template = "%{label}<br>%{value:.1f}%"
+        value_format = ":.1f"
+    else:
+        hover_template = "%{label}<br>%{value:,.0f} Kč"
+        value_format = ",.0f"
+    
+    fig_pie = px.pie(
+        df_display,
+        names="Kategorie",
+        values="Hodnota",
+        title="Rozložení financí",
+        hole=0.4,
+        width=700,
+        height=500
+    )
+    
+    # Aktualizace formátování a popisků
+    if view_mode == "% podíl":
+        fig_pie.update_traces(
+            textposition='inside',
+            textinfo='percent',  # Zobrazí pouze procenta
+            hovertemplate=hover_template
+        )
+    else:
+        fig_pie.update_traces(
+            textposition='inside',
+            textinfo='value',  # Zobrazí pouze hodnoty
+            hovertemplate=hover_template,
+            text=[f"{val:,.0f} Kč" for val in df_display["Hodnota"]],
+        )
+    
     st.plotly_chart(fig_pie)
 
 
@@ -181,100 +213,3 @@ def show_category_comparison(data):
     )
     
     st.plotly_chart(fig)
-
-def show_time_distribution(history_data):
-    """
-    Show distribution of entries over time using history data.
-    
-    Args:
-        history_data (list): List of history entries
-    """
-    if not history_data:
-        st.info("Zatím nejsou k dispozici žádná data pro časovou analýzu.")
-        return
-        
-    df = pd.DataFrame(history_data)
-    
-    # Convert timestamp to datetime
-    if "timestamp" in df.columns:
-        df["timestamp"] = pd.to_datetime(df["timestamp"])
-        
-        # Extract time components
-        df["month"] = df["timestamp"].dt.month
-        df["day_of_week"] = df["timestamp"].dt.dayofweek
-        df["hour"] = df["timestamp"].dt.hour
-        
-        # Map numeric values to names
-        month_names = {
-            1: "Leden", 2: "Únor", 3: "Březen", 4: "Duben", 5: "Květen", 6: "Červen",
-            7: "Červenec", 8: "Srpen", 9: "Září", 10: "Říjen", 11: "Listopad", 12: "Prosinec"
-        }
-        day_names = {
-            0: "Pondělí", 1: "Úterý", 2: "Středa", 3: "Čtvrtek", 
-            4: "Pátek", 5: "Sobota", 6: "Neděle"
-        }
-        
-        df["month_name"] = df["month"].map(month_names)
-        df["day_name"] = df["day_of_week"].map(day_names)
-        
-        time_view = st.selectbox(
-            "Zobrazit distribuci podle", 
-            ["Měsíce", "Dne v týdnu", "Hodiny"]
-        )
-        
-        value_to_analyze = st.radio(
-            "Analyzovat hodnotu", 
-            ["new_value", "Změny hodnot"],
-            format_func=lambda x: "Nové hodnoty" if x == "new_value" else x,
-            horizontal=True
-        )
-        
-        if value_to_analyze == "Změny hodnot":
-            df["value"] = df["new_value"] - df["old_value"]
-        else:
-            df["value"] = df[value_to_analyze]
-        
-        if time_view == "Měsíce":
-            # Group by month and sum values
-            monthly_data = df.groupby(["month", "month_name", "category"])["value"].sum().reset_index()
-            monthly_data = monthly_data.sort_values("month")
-            
-            fig = px.bar(
-                monthly_data,
-                x="month_name",
-                y="value",
-                color="category",
-                title="Distribuce podle měsíců",
-                labels={"month_name": "Měsíc", "value": "Hodnota", "category": "Kategorie"}
-            )
-            
-        elif time_view == "Dne v týdnu":
-            # Group by day of week and sum values
-            daily_data = df.groupby(["day_of_week", "day_name", "category"])["value"].sum().reset_index()
-            daily_data = daily_data.sort_values("day_of_week")
-            
-            fig = px.bar(
-                daily_data,
-                x="day_name",
-                y="value",
-                color="category",
-                title="Distribuce podle dnů v týdnu",
-                labels={"day_name": "Den", "value": "Hodnota", "category": "Kategorie"}
-            )
-            
-        else:  # Hodiny
-            # Group by hour and sum values
-            hourly_data = df.groupby(["hour", "category"])["value"].sum().reset_index()
-            
-            fig = px.bar(
-                hourly_data,
-                x="hour",
-                y="value",
-                color="category",
-                title="Distribuce podle hodin",
-                labels={"hour": "Hodina", "value": "Hodnota", "category": "Kategorie"}
-            )
-        
-        st.plotly_chart(fig)
-    else:
-        st.warning("Data neobsahují časové značky pro analýzu distribuce v čase.")
