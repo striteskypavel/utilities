@@ -13,6 +13,7 @@ from visualizations import (
 from history_manager import log_change, load_history, clear_history, delete_history_entries
 from config import DEFAULT_CATEGORIES
 from retirement_planning import show_retirement_planning
+from mortgage_calculator import show_mortgage_calculator
 import os
 import time
 
@@ -24,10 +25,15 @@ st.set_page_config(
 )
 
 # Výběr stránky
-page = st.sidebar.radio("Navigace", ["Hlavní stránka", "Plánování důchodu"])
+page = st.sidebar.radio(
+    "Navigace",
+    ["Hlavní stránka", "Plánování důchodu", "Hypoteční kalkulačka"]
+)
 
 if page == "Plánování důchodu":
     show_retirement_planning()
+elif page == "Hypoteční kalkulačka":
+    show_mortgage_calculator()
 else:  # Hlavní stránka
     # Načtení dat
     data = load_data()
@@ -177,40 +183,49 @@ else:  # Hlavní stránka
     # **Vkládání finančních záznamů**
     st.subheader("Přidat finanční záznam")
 
-    # Přidání možnosti vytvořit novou kategorii nebo vybrat existující
-    action_type = st.radio(
-        "Vyberte akci",
-        ["Vytvořit novou kategorii", "Upravit existující kategorii"],
-        horizontal=True
-    )
+    # Pole pro novou kategorii
+    new_category = st.text_input("Název nové kategorie").strip()
+    
+    # Pole pro částku
+    amount = st.number_input("Částka", min_value=0, step=1000, format="%d")
+    
+    submit = st.button("Přidat")
 
-    if action_type == "Vytvořit novou kategorii":
-        new_category = st.text_input("Název nové kategorie").strip()
-        
-        # Pole pro částku
-        amount = st.number_input("Částka", min_value=0, step=1000, format="%d")
-        
-        submit = st.button("Přidat")
-
-        if submit:
-            if not new_category:
-                st.error("Zadejte název kategorie!")
-            elif new_category in data:
-                st.error(f"Kategorie '{new_category}' již existuje! Použijte jinou kategorii nebo upravte existující.")
-            else:
-                add_entry(new_category, new_category, amount)  # Použijeme název kategorie jako popis
-                st.success(f"Vytvořena nová kategorie '{new_category}' a přidán záznam!")
-                st.rerun()
-    else:
-        if data:
-            category = st.selectbox("Vyberte kategorii", sorted(data.keys()))
-            st.info(f"Pro úpravu kategorie '{category}' použijte tabulku níže v sekci 'Přehled financí'.")
+    if submit:
+        if not new_category:
+            st.error("Zadejte název kategorie!")
+        elif new_category in data:
+            st.error(f"Kategorie '{new_category}' již existuje! Použijte jinou kategorii nebo upravte existující.")
         else:
-            st.info("Zatím nejsou k dispozici žádné kategorie. Vytvořte nejprve novou kategorii.")
+            add_entry(new_category, new_category, amount)  # Použijeme název kategorie jako popis
+            st.success(f"Vytvořena nová kategorie '{new_category}' a přidán záznam!")
+            st.rerun()
 
     # **Zobrazení přehledu financí**
     st.subheader("Přehled financí")
 
+    # **Vizualizace dat**
+    st.header("Vizualizace dat")
+
+    # Vytvoření záložek pro různé typy vizualizací
+    viz_tabs = st.tabs(["Rozložení financí", "Historie změn", "Porovnání kategorií"])
+
+    with viz_tabs[0]:
+        st.subheader("Rozložení financí")
+        # Výpočet součtů pro každou kategorii
+        totals = {cat: sum(item["amount"] for item in items) for cat, items in data.items()}
+        # Nastavení větší výšky grafu
+        show_pie_chart(totals, height=600)
+
+    with viz_tabs[1]:
+        st.subheader("Historie změn")
+        show_history_chart(history, height=600)
+
+    with viz_tabs[2]:
+        st.subheader("Porovnání kategorií")
+        show_category_comparison(data, height=600)
+
+    # Přesunuto pod grafy - editovatelná tabulka
     totals = {cat: sum(item["amount"] for item in data.get(cat, [])) for cat in data.keys()}
 
     df = pd.DataFrame({
@@ -249,24 +264,6 @@ else:  # Hlavní stránka
                     log_change(category, old_amount, new_amount)
                     st.success(f"Částka pro kategorii '{category}' byla aktualizována!")
                     st.rerun()
-
-    # **Vizualizace dat**
-    st.header("Vizualizace dat")
-
-    # Vytvoření záložek pro různé typy vizualizací
-    viz_tabs = st.tabs(["Rozložení financí", "Historie změn", "Porovnání kategorií"])
-
-    with viz_tabs[0]:
-        st.subheader("Rozložení financí")
-        show_pie_chart(totals)
-
-    with viz_tabs[1]:
-        st.subheader("Historie změn")
-        show_history_chart(history)
-
-    with viz_tabs[2]:
-        st.subheader("Porovnání kategorií")
-        show_category_comparison(data)
 
     # Přidat informace o aplikaci
     with st.sidebar.expander("O aplikaci", expanded=False):
