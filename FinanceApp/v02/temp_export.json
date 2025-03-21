@@ -1,0 +1,51 @@
+{
+    "Potraviny": [
+        {
+            "amount": 5000,
+            "date": "2024-03-20T10:30:00",
+            "note": "Nákup v supermarketu"
+        }
+    ],
+    "Doprava": [
+        {
+            "amount": 2000,
+            "date": "2024-03-19T15:45:00",
+            "note": "Tankování"
+        }
+    ],
+    "Bydlení": [
+        {
+            "amount": 15000,
+            "date": "2024-03-01T09:00:00",
+            "note": "Nájem"
+        }
+    ],
+    "Zábava": [
+        {
+            "amount": 3000,
+            "date": "2024-03-15T20:00:00",
+            "note": "Kino"
+        }
+    ],
+    "Oblečení": [
+        {
+            "amount": 4000,
+            "date": "2024-03-10T14:20:00",
+            "note": "Nákup oblečení"
+        }
+    ],
+    "Zdraví": [
+        {
+            "amount": 1000,
+            "date": "2024-03-05T11:15:00",
+            "note": "Léky"
+        }
+    ],
+    "Příjmy": [
+        {
+            "amount": 45000,
+            "date": "2024-03-01T08:00:00",
+            "note": "Plat"
+        }
+    ]
+} 

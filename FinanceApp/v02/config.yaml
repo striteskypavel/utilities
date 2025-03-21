@@ -1,0 +1,15 @@
+credentials:
+  usernames:
+    jnovak:
+      email: jnovak@example.com
+      name: Jan Novák
+      password: $2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW  # heslo: password123
+    ahorska:
+      email: ahorska@example.com
+      name: Anna Hořská
+      password: $2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW  # heslo: password123
+
+cookie:
+  expiry_days: 30
+  key: "finance_app_signature_key"
+  name: "finance_app_cookie" 
