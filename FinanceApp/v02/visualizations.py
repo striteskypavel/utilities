@@ -4,35 +4,34 @@ import plotly.graph_objects as go
 import pandas as pd
 from datetime import datetime
 
-def show_pie_chart(data, height=400):
-    """Zobrazí koláčový graf rozložení financí."""
-    if not data:
-        return
-    
+def show_pie_chart(totals: dict, height: int = 400):
+    """Zobrazí koláčový graf rozložení financí"""
     # Vytvoření DataFrame pro graf
-    df = pd.DataFrame({
-        'Kategorie': list(data.keys()),
-        'Částka': list(data.values())
-    })
+    df = pd.DataFrame([
+        {
+            'Kategorie': cat,
+            'Výdaje': data['Výdaj'],
+            'Příjmy': data['Příjem']
+        }
+        for cat, data in totals.items()
+    ])
     
-    # Seřazení podle částky sestupně
-    df = df.sort_values('Částka', ascending=False)
+    # Vytvoření koláčového grafu pro výdaje
+    fig_expenses = px.pie(df, values='Výdaje', names='Kategorie',
+                         title='Rozložení výdajů podle kategorií',
+                         height=height)
     
-    # Vytvoření koláčového grafu
-    fig = px.pie(
-        df,
-        values='Částka',
-        names='Kategorie',
-        title='Rozložení financí podle kategorií',
-        height=height
-    )
+    # Vytvoření koláčového grafu pro příjmy
+    fig_income = px.pie(df, values='Příjmy', names='Kategorie',
+                       title='Rozložení příjmů podle kategorií',
+                       height=height)
     
-    # Úprava formátu hodnot
-    fig.update_traces(
-        texttemplate='%{label}<br>%{value:,.0f} Kč<br>%{percent}'
-    )
-    
-    st.plotly_chart(fig, use_container_width=True)
+    # Zobrazení grafů vedle sebe
+    col1, col2 = st.columns(2)
+    with col1:
+        st.plotly_chart(fig_expenses, use_container_width=True)
+    with col2:
+        st.plotly_chart(fig_income, use_container_width=True)
 
 def show_history_chart(history, height=400):
     """Zobrazí graf historie změn."""

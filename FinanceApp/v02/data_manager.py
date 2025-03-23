@@ -46,36 +46,27 @@ def save_history(username, history):
     with open(history_file, 'w', encoding='utf-8') as f:
         json.dump(history, f, ensure_ascii=False, indent=2)
 
-def add_entry(username, category, amount):
-    """Přidá nový záznam pro konkrétního uživatele."""
-    data = load_data(username)
-    history = get_history(username)
-    
-    # Přidání nové kategorie
-    if category not in data:
-        data[category] = []
-    
-    # Vytvoření nového záznamu
-    entry = {
-        "amount": amount,
-        "timestamp": datetime.now().isoformat()
-    }
-    
-    # Přidání záznamu do dat
-    data[category].append(entry)
-    
-    # Přidání záznamu do historie
-    history_entry = {
-        "category": category,
-        "old_value": sum(item["amount"] for item in data[category][:-1]) if data[category][:-1] else 0,
-        "new_value": sum(item["amount"] for item in data[category]),
-        "timestamp": entry["timestamp"]
-    }
-    history.append(history_entry)
-    
-    # Uložení změn
-    save_data(username, data)
-    save_history(username, history)
+def add_entry(username: str, category: str, entry_data: dict) -> bool:
+    """Přidá nový záznam do historie"""
+    try:
+        # Načtení existujících dat
+        data = load_data(username)
+        
+        # Přidání nového záznamu
+        if category in data:
+            if isinstance(data[category], list):
+                data[category].append(entry_data)
+            else:
+                data[category] = [data[category], entry_data]
+        else:
+            data[category] = entry_data
+        
+        # Uložení aktualizovaných dat
+        save_data(username, data)
+        return True
+    except Exception as e:
+        print(f"Chyba při přidávání záznamu: {str(e)}")
+        return False
 
 def export_data(username: str, file_path: str, *, format: str = "json") -> bool:
     """Exportuje data uživatele do zvoleného formátu."""
@@ -116,12 +107,14 @@ def import_data(username: str, path: str, *, format: str = "json") -> bool:
             # Převedení JSON dat do správného formátu
             formatted_data = {}
             for category, entries in imported_data.items():
+                if not isinstance(entries, list):
+                    entries = [entries]
                 formatted_data[category] = []
                 for entry in entries:
                     formatted_data[category].append({
                         "amount": float(entry["amount"]),
-                        "timestamp": entry["date"],  # Použijeme date jako timestamp
-                        "note": entry.get("note", "")
+                        "timestamp": entry.get("timestamp") or entry.get("Datum") or entry.get("date") or datetime.now().isoformat(),
+                        "note": entry.get("note") or entry.get("Poznámka", "")
                     })
         else:  # CSV
             df = pd.read_csv(path)
@@ -135,7 +128,7 @@ def import_data(username: str, path: str, *, format: str = "json") -> bool:
                 
                 formatted_data[category].append({
                     "amount": float(row['Částka']),
-                    "timestamp": row['Datum'],
+                    "timestamp": row.get('Datum') or datetime.now().isoformat(),
                     "note": row.get('Poznámka', '')
                 })
         
@@ -154,4 +147,15 @@ def import_data(username: str, path: str, *, format: str = "json") -> bool:
         
     except Exception as e:
         print(f"Chyba při importu dat: {e}")
+        return False
+
+def clear_history(username: str) -> bool:
+    """Vymaže celou historii uživatele"""
+    try:
+        history_file = get_user_history_file(username)
+        if os.path.exists(history_file):
+            os.remove(history_file)
+        return True
+    except Exception as e:
+        print(f"Chyba při mazání historie: {e}")
         return False

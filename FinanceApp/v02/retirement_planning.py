@@ -131,7 +131,7 @@ def show_retirement_planning():
         hovermode='x unified'
     )
     
-    # Formátování osy Y na miliony
+    # Formátování osy Y
     fig.update_layout(
         yaxis=dict(
             tickformat=",.0f",
