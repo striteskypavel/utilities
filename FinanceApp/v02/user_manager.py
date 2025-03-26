@@ -4,37 +4,72 @@ import bcrypt
 from datetime import datetime
 
 # Konstanta pro adresář s daty uživatelů
-USER_DATA_DIR = os.path.join("data", "users")
+USER_DATA_DIR = os.getenv("USER_DATA_DIR", os.path.join("data", "users"))
 
 # Vytvoření všech potřebných adresářů
-os.makedirs("data", exist_ok=True)
 os.makedirs(USER_DATA_DIR, exist_ok=True)
 
 def get_user_file_path(username):
     """Vrátí cestu k souboru s daty uživatele"""
     return os.path.join(USER_DATA_DIR, f"{username}.json")
 
-def create_user(username: str, password: str, email: str, name: str) -> bool:
-    """Vytvoří nového uživatele"""
+def is_email_registered(email: str) -> bool:
+    """
+    Zkontroluje, zda je e-mail již registrován.
+    
+    Args:
+        email: E-mailová adresa k ověření
+        
+    Returns:
+        bool: True pokud je e-mail již registrován, jinak False
+    """
+    try:
+        # Procházení všech uživatelských souborů
+        for filename in os.listdir(USER_DATA_DIR):
+            if filename.endswith('.json'):
+                with open(os.path.join(USER_DATA_DIR, filename), 'r', encoding='utf-8') as f:
+                    user_data = json.load(f)
+                    if user_data.get('email') == email:
+                        return True
+        return False
+    except Exception as e:
+        print(f"Chyba při kontrole e-mailu: {e}")
+        return False
+
+def create_user(username: str, password: str, email: str) -> bool:
+    """
+    Vytvoří nového uživatele.
+    
+    Args:
+        username: Uživatelské jméno
+        password: Heslo
+        email: E-mailová adresa
+        
+    Returns:
+        bool: True pokud se uživatel podařilo vytvořit, jinak False
+    """
     try:
         # Kontrola existence uživatele
         if os.path.exists(get_user_file_path(username)):
             return False
         
-        # Vytvoření adresáře pro uživatelská data, pokud neexistuje
-        os.makedirs(os.path.dirname(get_user_file_path(username)), exist_ok=True)
+        # Kontrola, zda e-mail již není registrován
+        if is_email_registered(email):
+            return False
         
-        # Vytvoření uživatelských dat
+        # Hash hesla pomocí bcrypt
+        hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+        
+        # Vytvoření dat uživatele
         user_data = {
             "username": username,
-            "password": bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode(),
+            "password": hashed_password,
             "email": email,
-            "name": name,
             "created_at": datetime.now().isoformat()
         }
         
-        # Uložení dat do souboru
-        with open(get_user_file_path(username), 'w', encoding='utf-8') as f:
+        # Uložení dat uživatele
+        with open(get_user_file_path(username), "w", encoding="utf-8") as f:
             json.dump(user_data, f, ensure_ascii=False, indent=2)
         
         return True

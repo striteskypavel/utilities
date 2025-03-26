@@ -6,9 +6,12 @@ import tempfile
 import pandas as pd
 
 # Cesta k datovým souborům
-DATA_DIR = "data"
-if not os.path.exists(DATA_DIR):
-    os.makedirs(DATA_DIR)
+DATA_DIR = os.getenv("DATA_DIR", "data")
+USER_DATA_DIR = os.getenv("USER_DATA_DIR", os.path.join(DATA_DIR, "users"))
+
+# Vytvoření všech potřebných adresářů
+os.makedirs(DATA_DIR, exist_ok=True)
+os.makedirs(USER_DATA_DIR, exist_ok=True)
 
 def get_user_data_file(username):
     """Vrátí cestu k datovému souboru uživatele."""
@@ -17,6 +20,10 @@ def get_user_data_file(username):
 def get_user_history_file(username):
     """Vrátí cestu k souboru s historií uživatele."""
     return os.path.join(DATA_DIR, f"{username}_history.json")
+
+def get_user_file_path(username):
+    """Vrátí cestu k souboru s daty uživatele"""
+    return os.path.join(USER_DATA_DIR, f"{username}.json")
 
 def load_data(username):
     """Načte data pro konkrétního uživatele."""
@@ -46,20 +53,32 @@ def save_history(username, history):
     with open(history_file, 'w', encoding='utf-8') as f:
         json.dump(history, f, ensure_ascii=False, indent=2)
 
-def add_entry(username: str, category: str, entry_data: dict) -> bool:
+def add_entry(username: str, category: str, entry_data: any) -> bool:
     """Přidá nový záznam do historie"""
     try:
         # Načtení existujících dat
         data = load_data(username)
+        print(f"Existing data: {data}")
+        
+        # Příprava záznamu
+        if isinstance(entry_data, (int, float)):
+            entry = {
+                "amount": float(entry_data),
+                "timestamp": datetime.now().isoformat(),
+                "note": ""
+            }
+        else:
+            entry = entry_data
+        print(f"New entry: {entry}")
         
         # Přidání nového záznamu
-        if category in data:
-            if isinstance(data[category], list):
-                data[category].append(entry_data)
-            else:
-                data[category] = [data[category], entry_data]
-        else:
-            data[category] = entry_data
+        if category not in data:
+            data[category] = []
+        elif not isinstance(data[category], list):
+            data[category] = [data[category]]
+        
+        data[category].append(entry)
+        print(f"Updated data: {data}")
         
         # Uložení aktualizovaných dat
         save_data(username, data)
@@ -82,13 +101,25 @@ def export_data(username: str, file_path: str, *, format: str = "json") -> bool:
                 writer.writerow(['Kategorie', 'Částka', 'Datum', 'Poznámka'])
                 
                 for category, entries in data.items():
+                    if not isinstance(entries, list):
+                        entries = [entries]
                     for entry in entries:
-                        writer.writerow([
-                            category,
-                            entry['amount'],
-                            entry['timestamp'],
-                            entry.get('note', '')
-                        ])
+                        if isinstance(entry, (int, float)):
+                            writer.writerow([
+                                category,
+                                entry,
+                                datetime.now().isoformat(),
+                                ''
+                            ])
+                        elif isinstance(entry, dict):
+                            writer.writerow([
+                                category,
+                                entry['amount'],
+                                entry.get('timestamp', datetime.now().isoformat()),
+                                entry.get('note', '')
+                            ])
+                        else:
+                            print(f"Přeskočen nepodporovaný formát záznamu: {entry}")
         else:
             raise ValueError(f"Nepodporovaný formát: {format}")
         
@@ -132,17 +163,8 @@ def import_data(username: str, path: str, *, format: str = "json") -> bool:
                     "note": row.get('Poznámka', '')
                 })
         
-        # Načtení existujících dat
-        current_data = load_data(username)
-        
-        # Aktualizace dat
-        for category, entries in formatted_data.items():
-            if category not in current_data:
-                current_data[category] = []
-            current_data[category].extend(entries)
-        
-        # Uložení aktualizovaných dat
-        save_data(username, current_data)
+        # Uložení nových dat (přepsání existujících)
+        save_data(username, formatted_data)
         return True
         
     except Exception as e:

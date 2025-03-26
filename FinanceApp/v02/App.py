@@ -12,9 +12,9 @@ from visualizations import (
 )
 from history_manager import log_change, load_history, clear_history, delete_history_entries
 from config import DEFAULT_CATEGORIES
-from retirement_planning import show_retirement_planning
+from retirement_planner import show_retirement_planning
 from mortgage_calculator import show_mortgage_calculator
-from user_manager import create_user, verify_user, get_user_data, update_user_password, get_user_file_path
+from user_manager import create_user, verify_user, get_user_data, update_user_password, get_user_file_path, is_email_registered
 import os
 import time
 from expense_tracker import show_expense_tracker
@@ -51,21 +51,33 @@ def show_login_page():
             
             if submit:
                 success, user_data = verify_user(username, password)
-                if success and user_data:
-                    st.success("Přihlášení bylo úspěšné!")
-                    return user_data.get("name"), True, user_data
+                if success:
+                    st.session_state['logged_in'] = True
+                    st.session_state['username'] = username
+                    st.rerun()
                 else:
-                    st.error("Nesprávné přihlašovací údaje")
-                    return None, False, None
+                    st.error("Nesprávné uživatelské jméno nebo heslo")
         
         st.markdown("---")
         st.subheader("Registrace nového uživatele")
+        
+        # Inicializace session state pro registrační formulář
+        if 'registration_submitted' not in st.session_state:
+            st.session_state.registration_submitted = False
+        
         with st.form("register_form"):
-            new_username = st.text_input("Nové uživatelské jméno")
-            new_password = st.text_input("Nové heslo", type="password")
-            confirm_password = st.text_input("Potvrzení hesla", type="password")
-            email = st.text_input("E-mail")
-            name = st.text_input("Jméno")
+            if not st.session_state.registration_submitted:
+                new_username = st.text_input("Nové uživatelské jméno")
+                new_password = st.text_input("Nové heslo", type="password")
+                confirm_password = st.text_input("Potvrzení hesla", type="password")
+                email = st.text_input("E-mail")
+            else:
+                new_username = ""
+                new_password = ""
+                confirm_password = ""
+                email = ""
+                st.session_state.registration_submitted = False
+            
             register = st.form_submit_button("Registrovat", use_container_width=True)
             
             if register:
@@ -78,8 +90,6 @@ def show_login_page():
                     st.error("Potvrďte heslo")
                 elif not email or not email.strip():
                     st.error("Zadejte e-mail")
-                elif not name or not name.strip():
-                    st.error("Zadejte jméno")
                 elif new_password != confirm_password:
                     st.error("Hesla se neshodují")
                 else:
@@ -103,25 +113,58 @@ def show_login_page():
                     else:
                         # Validace e-mailu
                         import re
-                        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-                        if not re.match(email_pattern, email):
-                            st.error("Zadejte platnou e-mailovou adresu")
+                        
+                        def validate_email(email):
+                            # Základní formát
+                            email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+                            if not re.match(email_pattern, email):
+                                return False, "Neplatný formát e-mailové adresy"
+                            
+                            # Kontrola běžných překlepů v doménách
+                            common_domains = {
+                                'gmail.com': ['gmai.com', 'gmail.cz', 'gmal.com', 'gmail.co', 'gmai2.com'],
+                                'seznam.cz': ['seznan.cz', 'seznam.com', 'seznamcz'],
+                                'email.cz': ['emil.cz', 'email.com'],
+                                'yahoo.com': ['yaho.com', 'yahoo.cz', 'yahho.com'],
+                                'outlook.com': ['outlok.com', 'outlook.cz', 'outlock.com']
+                            }
+                            
+                            domain = email.split('@')[1].lower()
+                            
+                            # Kontrola známých překlepů
+                            for valid_domain, typos in common_domains.items():
+                                if domain in typos:
+                                    return False, f"Možná jste měli na mysli @{valid_domain}?"
+                            
+                            # Kontrola minimální délky domény druhého řádu
+                            domain_parts = domain.split('.')
+                            if len(domain_parts) < 2 or any(len(part) < 2 for part in domain_parts):
+                                return False, "Neplatná doména"
+                            
+                            return True, ""
+                        
+                        email_valid, email_error = validate_email(email)
+                        if not email_valid:
+                            st.error(email_error)
                         else:
                             # Kontrola existence uživatele
                             if os.path.exists(get_user_file_path(new_username)):
                                 st.error("Uživatelské jméno již existuje. Zvolte jiné.")
-                            elif create_user(new_username, new_password, email, name):
+                            elif is_email_registered(email):
+                                st.error("E-mailová adresa je již registrována. Použijte jinou.")
+                            elif create_user(new_username, new_password, email):
                                 st.success("Registrace byla úspěšná! Můžete se přihlásit.")
+                                st.session_state.registration_submitted = True
+                                st.rerun()
                             else:
                                 st.error("Nastala chyba při registraci. Zkuste to prosím znovu.")
-    
-    return None, False, None
 
 def show_main_app(username, name):
     """Zobrazí hlavní aplikaci po přihlášení"""
     # Zobrazení jména přihlášeného uživatele a tlačítka pro odhlášení
     if st.sidebar.button("Odhlásit"):
-        del st.session_state["user"]
+        del st.session_state["logged_in"]
+        del st.session_state["username"]
         st.rerun()
     
     st.sidebar.title(f'Vítejte, {name}')
@@ -136,136 +179,11 @@ def show_main_app(username, name):
     # Navigace
     menu = st.sidebar.selectbox(
         "Menu",
-        ["Přehled", "Sledování výdajů", "Hypoteční kalkulačka", "Plánování důchodu", "Export/Import", "Správa uživatele"]
+        ["Přehled investic", "Sledování výdajů", "Hypoteční kalkulačka", "Plánování důchodu", "Export/Import", "Správa uživatele"]
     )
 
-    if menu == "Přehled":
+    if menu == "Přehled investic":
         show_overview(username)
-        
-        # Hlavní obsah aplikace - pouze pro přehled
-        st.title("Jednoduchý sledovač financí")
-
-        # Přidání finančních záznamů
-        st.subheader("Přidat finanční záznam")
-
-        new_category = st.text_input("Název nové kategorie").strip()
-        type_ = st.selectbox("Typ", ["Výdaj", "Příjem"])
-        amount = st.number_input("Částka", min_value=0, step=1000, format="%d")
-        
-        if st.button("Přidat"):
-            if not new_category:
-                st.error("Zadejte název kategorie!")
-            elif new_category in data:
-                st.error(f"Kategorie '{new_category}' již existuje!")
-            else:
-                entry_data = {
-                    "type": type_,
-                    "amount": amount,
-                    "timestamp": datetime.now().isoformat()
-                }
-                add_entry(username, new_category, entry_data)
-                st.success(f"Vytvořena nová kategorie '{new_category}' a přidán záznam!")
-                st.rerun()
-
-        # Přehled financí
-        st.subheader("Přehled financí")
-        
-        # Výpočet součtů pro každou kategorii a typ
-        totals = {}
-        for cat, entries in data.items():
-            if isinstance(entries, list):
-                for entry in entries:
-                    type_ = entry.get("type", "Výdaj")
-                    if cat not in totals:
-                        totals[cat] = {"Výdaj": 0, "Příjem": 0}
-                    totals[cat][type_] += float(entry.get("amount", 0))
-            else:
-                type_ = entries.get("type", "Výdaj")
-                if cat not in totals:
-                    totals[cat] = {"Výdaj": 0, "Příjem": 0}
-                totals[cat][type_] += float(entries.get("amount", 0))
-        
-        # Vytvoření DataFrame pro zobrazení
-        df = pd.DataFrame([
-            {
-                'Kategorie': cat,
-                'Výdaje': data['Výdaj'],
-                'Příjmy': data['Příjem'],
-                'Bilance': data['Příjem'] - data['Výdaj']
-            }
-            for cat, data in totals.items()
-        ])
-
-        edited_df = st.data_editor(
-            df,
-            column_config={
-                "Kategorie": st.column_config.TextColumn("Kategorie", disabled=True),
-                "Výdaje": st.column_config.NumberColumn(
-                    "Výdaje",
-                    help="Upravte částku výdajů přímo v tabulce",
-                    min_value=0,
-                    format="%.0f Kč"
-                ),
-                "Příjmy": st.column_config.NumberColumn(
-                    "Příjmy",
-                    help="Upravte částku příjmů přímo v tabulce",
-                    min_value=0,
-                    format="%.0f Kč"
-                ),
-                "Bilance": st.column_config.NumberColumn(
-                    "Bilance",
-                    help="Bilance příjmů a výdajů",
-                    disabled=True,
-                    format="%.0f Kč"
-                )
-            },
-            use_container_width=True,
-            hide_index=True
-        )
-
-        if not df.equals(edited_df):
-            for idx, row in edited_df.iterrows():
-                category = row["Kategorie"]
-                new_expenses = row["Výdaje"]
-                new_income = row["Příjmy"]
-                old_expenses = totals[category]["Výdaj"]
-                old_income = totals[category]["Příjem"]
-                
-                if new_expenses != old_expenses or new_income != old_income:
-                    if data[category]:
-                        # Aktualizace výdajů
-                        if new_expenses != old_expenses:
-                            data[category][-1]["amount"] = new_expenses
-                            data[category][-1]["type"] = "Výdaj"
-                            save_data(username, data)
-                            log_change(f"{category} (výdaje)", old_expenses, new_expenses)
-                        
-                        # Aktualizace příjmů
-                        if new_income != old_income:
-                            data[category][-1]["amount"] = new_income
-                            data[category][-1]["type"] = "Příjem"
-                            save_data(username, data)
-                            log_change(f"{category} (příjmy)", old_income, new_income)
-                        
-                        st.success(f"Částky pro kategorii '{category}' byly aktualizovány!")
-                        st.rerun()
-
-        # Vizualizace dat
-        st.header("Vizualizace dat")
-        viz_tabs = st.tabs(["Rozložení financí", "Historie změn", "Porovnání kategorií"])
-
-        with viz_tabs[0]:
-            st.subheader("Rozložení financí")
-            show_pie_chart(totals, height=600)
-
-        with viz_tabs[1]:
-            st.subheader("Historie změn")
-            show_history_chart(history, height=600)
-
-        with viz_tabs[2]:
-            st.subheader("Porovnání kategorií")
-            show_category_comparison(data, height=600)
-
     elif menu == "Sledování výdajů":
         show_expense_tracker(username)
     elif menu == "Hypoteční kalkulačka":
@@ -431,87 +349,106 @@ def show_settings(username: str):
             elif new_password != confirm_password:
                 st.error("Nové heslo a potvrzení se neshodují")
             else:
-                success, message = update_user_password(username, old_password, new_password)
-                if success:
-                    st.success(message)
+                # Validace síly hesla
+                password_errors = []
+                if len(new_password) < 8:
+                    password_errors.append("Heslo musí mít alespoň 8 znaků")
+                if not any(c.isupper() for c in new_password):
+                    password_errors.append("Heslo musí obsahovat alespoň jedno velké písmeno")
+                if not any(c.islower() for c in new_password):
+                    password_errors.append("Heslo musí obsahovat alespoň jedno malé písmeno")
+                if not any(c.isdigit() for c in new_password):
+                    password_errors.append("Heslo musí obsahovat alespoň jednu číslici")
+                if not any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?" for c in new_password):
+                    password_errors.append("Heslo musí obsahovat alespoň jeden speciální znak")
+                
+                if password_errors:
+                    st.error("Nové heslo nesplňuje požadavky na bezpečnost:")
+                    for error in password_errors:
+                        st.error(error)
                 else:
-                    st.error(message)
+                    success, message = update_user_password(username, old_password, new_password)
+                    if success:
+                        st.success(message)
+                    else:
+                        st.error(message)
     
     # Informace o účtu
     st.subheader("Informace o účtu")
     st.write(f"**Uživatelské jméno:** {user_data['username']}")
     st.write(f"**E-mail:** {user_data['email']}")
-    st.write(f"**Jméno:** {user_data['name']}")
     st.write(f"**Účet vytvořen:** {datetime.fromisoformat(user_data['created_at']).strftime('%d.%m.%Y %H:%M')}")
 
-def show_overview(username: str):
-    """Zobrazí přehled financí"""
-    st.title("Přehled financí")
+def show_overview(username):
+    """Zobrazí přehled financí uživatele."""
+    st.title("Přehled investic")
     
     # Načtení dat
     data = load_data(username)
+    if not data:
+        st.error("Nepodařilo se načíst data uživatele.")
+        return
     
-    if data:
-        # Výpočet celkových součtů pro každou kategorii a typ
-        totals = {}
-        for cat, entries in data.items():
-            if isinstance(entries, list):
-                for entry in entries:
-                    type_ = entry.get("type", "Výdaj")
-                    if cat not in totals:
-                        totals[cat] = {"Výdaj": 0, "Příjem": 0}
-                    totals[cat][type_] += float(entry.get("amount", 0))
-            else:
-                type_ = entries.get("type", "Výdaj")
-                if cat not in totals:
-                    totals[cat] = {"Výdaj": 0, "Příjem": 0}
-                totals[cat][type_] += float(entries.get("amount", 0))
-        
-        # Vytvoření DataFrame pro zobrazení
-        df_totals = pd.DataFrame([
-            {
-                'Kategorie': cat,
-                'Výdaje': data['Výdaj'],
-                'Příjmy': data['Příjem'],
-                'Bilance': data['Příjem'] - data['Výdaj']
-            }
-            for cat, data in totals.items()
-        ])
-        df_totals = df_totals.sort_values('Bilance', ascending=False)
-        
-        # Zobrazení tabulky
-        st.dataframe(df_totals, use_container_width=True)
-        
-        # Výpočet celkových součtů
-        total_expenses = sum(data['Výdaj'] for data in totals.values())
-        total_income = sum(data['Příjem'] for data in totals.values())
-        total_balance = total_income - total_expenses
-        
-        # Zobrazení celkových součtů
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Celkové výdaje", f"{total_expenses:,.0f} Kč")
-        with col2:
-            st.metric("Celkové příjmy", f"{total_income:,.0f} Kč")
-        with col3:
-            st.metric("Celková bilance", f"{total_balance:,.0f} Kč")
-    else:
-        st.info("Zatím nejsou žádné záznamy")
+    # Vytvoření DataFrame pro přehled
+    overview_data = []
+    for category, entries in data.items():
+        if isinstance(entries, list):
+            # Pro kategorie s více položkami
+            total = sum(entry['amount'] for entry in entries)
+            overview_data.append({
+                'Kategorie': category,
+                'Celkem': total
+            })
+        else:
+            # Pro kategorie s jednou položkou
+            overview_data.append({
+                'Kategorie': category,
+                'Celkem': entries['amount']
+            })
+    
+    # Vytvoření DataFrame a výpočet celkového součtu
+    df_overview = pd.DataFrame(overview_data)
+    total_sum = df_overview['Celkem'].sum()
+    
+    # Přidání řádku s celkovým součtem
+    df_overview = pd.concat([
+        df_overview,
+        pd.DataFrame([{'Kategorie': 'CELKEM', 'Celkem': total_sum}])
+    ], ignore_index=True)
+    
+    # Zobrazení přehledu
+    st.subheader("Celkový přehled")
+    st.dataframe(
+        df_overview,
+        hide_index=True,
+        use_container_width=True
+    )
+    
+    # Zobrazení grafů
+    st.subheader("Grafické zobrazení")
+    
+    # Převod dat pro pie chart
+    pie_data = {}
+    for _, row in df_overview.iterrows():
+        if row['Kategorie'] != 'CELKEM':  # Vynecháme celkový součet
+            pie_data[row['Kategorie']] = row['Celkem']
+    
+    show_pie_chart(pie_data)
+    
+    # Zobrazení detailů
+    st.subheader("Detailní přehled")
+    show_expense_tracker(username)
 
 # Hlavní logika aplikace
-if "user" not in st.session_state:
-    name, authentication_status, user_data = show_login_page()
-    if authentication_status and user_data:
-        st.session_state["user"] = user_data
-        st.session_state["authenticated"] = True
-        st.rerun()
-elif st.session_state.get("authenticated", False):
-    user_data = st.session_state["user"]
-    if user_data and "username" in user_data and "name" in user_data:
-        show_main_app(user_data["username"], user_data["name"])
+if "logged_in" not in st.session_state:
+    st.session_state["logged_in"] = False
+
+if not st.session_state["logged_in"]:
+    show_login_page()
+else:
+    user_data = get_user_data(st.session_state["username"])
+    if user_data:
+        show_main_app(user_data["username"], user_data["username"])  # Použijeme username místo name
     else:
         st.session_state.clear()
         st.rerun()
-else:
-    st.session_state.clear()
-    st.rerun()
