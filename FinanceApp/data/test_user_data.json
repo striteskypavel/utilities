@@ -1,0 +1,85 @@
+{
+  "Test1": [
+    {
+      "amount": 1000.0,
+      "timestamp": "2025-03-26T22:17:44.857283",
+      "note": "Note1"
+    }
+  ],
+  "Test2": [
+    {
+      "amount": 2000.0,
+      "timestamp": "2025-03-26T22:17:44.857289",
+      "note": "Note2"
+    }
+  ],
+  "ETF": [
+    {
+      "amount": 500000,
+      "timestamp": "2025-03-26T22:17:44.857656",
+      "note": "Vanguard S&P 500 ETF"
+    },
+    {
+      "amount": 300000,
+      "timestamp": "2025-03-26T22:17:44.857659",
+      "note": "iShares MSCI World ETF"
+    }
+  ],
+  "Akcie": [
+    {
+      "amount": 200000,
+      "timestamp": "2025-03-26T22:17:44.857660",
+      "note": "Apple Inc."
+    },
+    {
+      "amount": 150000,
+      "timestamp": "2025-03-26T22:17:44.857661",
+      "note": "Microsoft Corp."
+    }
+  ],
+  "Kryptoměny": [
+    {
+      "amount": 100000,
+      "timestamp": "2025-03-26T22:17:44.857663",
+      "note": "Bitcoin"
+    },
+    {
+      "amount": 50000,
+      "timestamp": "2025-03-26T22:17:44.857664",
+      "note": "Ethereum"
+    }
+  ],
+  "Nemovitosti": [
+    {
+      "amount": 2000000,
+      "timestamp": "2025-03-26T22:17:44.857665",
+      "note": "Byt v centru"
+    }
+  ],
+  "Dluhopisy": [
+    {
+      "amount": 400000,
+      "timestamp": "2025-03-26T22:17:44.857666",
+      "note": "Státní dluhopisy"
+    }
+  ],
+  "Hotovost": [
+    {
+      "amount": 300000,
+      "timestamp": "2025-03-26T22:17:44.857667",
+      "note": "Běžný účet"
+    },
+    {
+      "amount": 200000,
+      "timestamp": "2025-03-26T22:17:44.857668",
+      "note": "Termínovaný vklad"
+    }
+  ],
+  "Důchodové": [
+    {
+      "amount": 600000,
+      "timestamp": "2025-03-26T22:17:44.857669",
+      "note": "Penzijní připojištění"
+    }
+  ]
+}

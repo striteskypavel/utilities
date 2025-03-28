@@ -1,0 +1,164 @@
+{
+  "Bydlení": [
+    {
+      "amount": 1114000.0,
+      "timestamp": "2025-03-26T21:36:23.648056",
+      "note": NaN
+    }
+  ],
+  "plat": [
+    {
+      "amount": 25000.0,
+      "timestamp": "2025-03-26T21:36:45.217067",
+      "note": NaN
+    }
+  ],
+  "ETF": [
+    {
+      "amount": 500000.0,
+      "timestamp": "2025-03-26T21:56:07.934824",
+      "note": "Vanguard S&P 500 ETF"
+    },
+    {
+      "amount": 300000.0,
+      "timestamp": "2025-03-26T21:56:07.934843",
+      "note": "iShares MSCI World ETF"
+    }
+  ],
+  "Akcie": [
+    {
+      "amount": 200000.0,
+      "timestamp": "2025-03-26T21:56:07.934845",
+      "note": "Apple Inc."
+    },
+    {
+      "amount": 150000.0,
+      "timestamp": "2025-03-26T21:56:07.934846",
+      "note": "Microsoft Corp."
+    }
+  ],
+  "Kryptoměny": [
+    {
+      "amount": 100000.0,
+      "timestamp": "2025-03-26T21:56:07.934847",
+      "note": "Bitcoin"
+    },
+    {
+      "amount": 50000.0,
+      "timestamp": "2025-03-26T21:56:07.934848",
+      "note": "Ethereum"
+    }
+  ],
+  "Nemovitosti": [
+    {
+      "amount": 2000000.0,
+      "timestamp": "2025-03-26T21:56:07.934849",
+      "note": "Byt v centru"
+    }
+  ],
+  "Dluhopisy": [
+    {
+      "amount": 400000.0,
+      "timestamp": "2025-03-26T21:56:07.934850",
+      "note": "Státní dluhopisy"
+    }
+  ],
+  "Hotovost": [
+    {
+      "amount": 300000.0,
+      "timestamp": "2025-03-26T21:56:07.934851",
+      "note": "Běžný účet"
+    },
+    {
+      "amount": 200000.0,
+      "timestamp": "2025-03-26T21:56:07.934853",
+      "note": "Termínovaný vklad"
+    }
+  ],
+  "Důchodové": [
+    {
+      "amount": 600000.0,
+      "timestamp": "2025-03-26T21:56:07.934854",
+      "note": "Penzijní připojištění"
+    }
+  ],
+  "SDPR S&P 500": [
+    {
+      "amount": 100000.0,
+      "timestamp": "2025-03-26T22:01:56.636776",
+      "note": NaN
+    }
+  ],
+  "Bitcoin": [
+    {
+      "amount": 100000.0,
+      "timestamp": "2025-03-26T22:02:18.042682",
+      "note": NaN
+    },
+    {
+      "amount": 200000,
+      "timestamp": "2025-03-28T00:00:00",
+      "note": "",
+      "type": "Bitcoin"
+    },
+    {
+      "amount": 200000,
+      "timestamp": "2025-03-28T00:00:00",
+      "note": "",
+      "type": "Bitcoin"
+    }
+  ],
+  "Ethereum": [
+    {
+      "amount": 100000.0,
+      "timestamp": "2025-03-26T22:02:32.611374",
+      "note": NaN
+    },
+    {
+      "amount": 200000,
+      "timestamp": "2025-03-28T00:00:00",
+      "note": "",
+      "type": "Ethereum"
+    }
+  ],
+  "Altcoiny": [
+    {
+      "amount": 100000.0,
+      "timestamp": "2025-03-26T22:02:36.491418",
+      "note": NaN
+    },
+    {
+      "amount": 200000.0,
+      "timestamp": "2025-03-26T22:03:04.474496",
+      "note": NaN
+    }
+  ],
+  "Nájem/Hypotéka": [
+    {
+      "amount": 100000.0,
+      "timestamp": "2025-03-27T00:00:00",
+      "note": NaN
+    }
+  ],
+  "Oblečení": [
+    {
+      "amount": 100001.0,
+      "timestamp": "2025-03-27T00:00:00",
+      "note": NaN
+    }
+  ],
+  "VWCE": [
+    {
+      "amount": 10000,
+      "timestamp": "2025-03-27T00:00:00",
+      "note": "",
+      "type": "VWCE"
+    },
+    {
+      "amount": 10000,
+      "timestamp": "2025-03-30T00:00:00",
+      "note": "",
+      "type": "VWCE"
+    }
+  ]
+}

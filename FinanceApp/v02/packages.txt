@@ -1,3 +1,7 @@
 python3-dev
+<<<<<<< Updated upstream
 build-essential
 libffi-dev 
+=======
+build-essential 
+>>>>>>> Stashed changes
