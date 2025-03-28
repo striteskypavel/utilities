@@ -30,7 +30,40 @@ def load_data(username):
     data_file = get_user_data_file(username)
     if os.path.exists(data_file):
         with open(data_file, 'r', encoding='utf-8') as f:
-            return json.load(f)
+            data = json.load(f)
+            
+            # Pokud neexistují investiční data, vytvoříme výchozí strukturu
+            if not any(key in data for key in ["ETF", "Akcie", "Kryptoměny", "Nemovitosti", "Dluhopisy", "Hotovost", "Důchodové"]):
+                data.update({
+                    "ETF": [
+                        {"amount": 500000, "timestamp": datetime.now().isoformat(), "note": "Vanguard S&P 500 ETF"},
+                        {"amount": 300000, "timestamp": datetime.now().isoformat(), "note": "iShares MSCI World ETF"}
+                    ],
+                    "Akcie": [
+                        {"amount": 200000, "timestamp": datetime.now().isoformat(), "note": "Apple Inc."},
+                        {"amount": 150000, "timestamp": datetime.now().isoformat(), "note": "Microsoft Corp."}
+                    ],
+                    "Kryptoměny": [
+                        {"amount": 100000, "timestamp": datetime.now().isoformat(), "note": "Bitcoin"},
+                        {"amount": 50000, "timestamp": datetime.now().isoformat(), "note": "Ethereum"}
+                    ],
+                    "Nemovitosti": [
+                        {"amount": 2000000, "timestamp": datetime.now().isoformat(), "note": "Byt v centru"}
+                    ],
+                    "Dluhopisy": [
+                        {"amount": 400000, "timestamp": datetime.now().isoformat(), "note": "Státní dluhopisy"}
+                    ],
+                    "Hotovost": [
+                        {"amount": 300000, "timestamp": datetime.now().isoformat(), "note": "Běžný účet"},
+                        {"amount": 200000, "timestamp": datetime.now().isoformat(), "note": "Termínovaný vklad"}
+                    ],
+                    "Důchodové": [
+                        {"amount": 600000, "timestamp": datetime.now().isoformat(), "note": "Penzijní připojištění"}
+                    ]
+                })
+                save_data(username, data)
+            
+            return data
     return {}
 
 def save_data(username, data):

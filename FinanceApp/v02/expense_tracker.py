@@ -122,6 +122,13 @@ def show_expense_tracker(username: str):
             # Tabulka s měsíčními součty
             st.subheader("Měsíční součty")
             df_monthly_pivot = df_monthly.pivot(index='Období', columns='Typ', values='Částka').fillna(0)
+            
+            # Zajistíme, že existují všechny potřebné sloupce
+            if 'Příjem' not in df_monthly_pivot.columns:
+                df_monthly_pivot['Příjem'] = 0
+            if 'Výdaj' not in df_monthly_pivot.columns:
+                df_monthly_pivot['Výdaj'] = 0
+            
             df_monthly_pivot['Bilance'] = df_monthly_pivot['Příjem'] - df_monthly_pivot['Výdaj']
             st.dataframe(df_monthly_pivot, use_container_width=True)
         else:

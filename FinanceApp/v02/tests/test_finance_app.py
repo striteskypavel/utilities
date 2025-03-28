@@ -6,6 +6,15 @@ from datetime import datetime
 import tempfile
 import shutil
 
+# Vytvoření dočasného adresáře pro test
+TEST_DIR = tempfile.mkdtemp()
+USERS_DIR = os.path.join(TEST_DIR, "users")
+os.makedirs(USERS_DIR, exist_ok=True)
+
+# Nastavení proměnných prostředí pro test
+os.environ["DATA_DIR"] = TEST_DIR
+os.environ["USER_DATA_DIR"] = USERS_DIR
+
 # Přidání cesty k modulům aplikace
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -24,29 +33,25 @@ class TestFinanceApp(unittest.TestCase):
         self.test_password = "Test123!"
         self.test_email = "test@example.com"
         
-        # Vytvoření dočasného adresáře pro test
-        self.test_dir = tempfile.mkdtemp()
-        
-        # Vytvoření adresáře pro uživatele
-        self.users_dir = os.path.join(self.test_dir, "users")
-        os.makedirs(self.users_dir, exist_ok=True)
-        
         # Nastavení cest k testovacím datům
+        self.test_dir = TEST_DIR
+        self.users_dir = USERS_DIR
         self.data_file = os.path.join(self.test_dir, f"{self.test_username}_data.json")
         self.history_file = os.path.join(self.test_dir, f"{self.test_username}_history.json")
         self.user_file = os.path.join(self.users_dir, f"{self.test_username}.json")
-        
-        # Nastavení proměnných prostředí pro test
-        os.environ["DATA_DIR"] = self.test_dir
-        os.environ["USER_DATA_DIR"] = self.users_dir
 
-    def tearDown(self):
-        """Úklid po každém testu"""
+    @classmethod
+    def tearDownClass(cls):
+        """Úklid po všech testech"""
         # Smazání dočasného adresáře
-        shutil.rmtree(self.test_dir)
+        shutil.rmtree(TEST_DIR)
 
     def test_user_registration(self):
         """Test registrace nového uživatele"""
+        # Nejprve smažeme existujícího uživatele, pokud existuje
+        if os.path.exists(self.user_file):
+            os.remove(self.user_file)
+        
         # Registrace nového uživatele
         success = create_user(
             self.test_username,
@@ -151,6 +156,10 @@ class TestFinanceApp(unittest.TestCase):
 
     def test_csv_export(self):
         """Test exportu dat do CSV"""
+        # Načtení původních dat
+        original_data = load_data(self.test_username)
+        original_entries = sum(len(entries) if isinstance(entries, list) else 1 for entries in original_data.values())
+        
         # Přidání testovacích dat
         add_entry(self.test_username, "Test1", 1000)
         add_entry(self.test_username, "Test2", 2000)
@@ -164,9 +173,9 @@ class TestFinanceApp(unittest.TestCase):
         # Ověření obsahu CSV souboru
         with open(csv_file, 'r', encoding='utf-8') as f:
             lines = f.readlines()
-            self.assertEqual(len(lines), 3)  # Hlavička + 2 záznamy
-            self.assertTrue("Test1,1000" in lines[1] or "Test1,1000" in lines[2])
-            self.assertTrue("Test2,2000" in lines[1] or "Test2,2000" in lines[2])
+            self.assertEqual(len(lines), original_entries + 3)  # Hlavička + původní záznamy + 2 nové záznamy
+            self.assertTrue(any("Test1,1000" in line for line in lines))
+            self.assertTrue(any("Test2,2000" in line for line in lines))
         
         # Úklid
         os.remove(csv_file)
@@ -204,6 +213,10 @@ class TestFinanceApp(unittest.TestCase):
 
     def test_add_new_entry(self):
         """Test přidání nové položky"""
+        # Načtení původních dat
+        original_data = load_data(self.test_username)
+        original_test1_count = len(original_data.get("Test1", []))
+        
         # Přidání nové položky
         add_entry(self.test_username, "Test1", 1000)
         
@@ -211,8 +224,8 @@ class TestFinanceApp(unittest.TestCase):
         data = load_data(self.test_username)
         self.assertIn("Test1", data)
         self.assertTrue(isinstance(data["Test1"], list))
-        self.assertEqual(len(data["Test1"]), 1)
-        self.assertEqual(data["Test1"][0]["amount"], 1000)
+        self.assertEqual(len(data["Test1"]), original_test1_count + 1)
+        self.assertEqual(data["Test1"][-1]["amount"], 1000)
 
 if __name__ == '__main__':
     unittest.main() 

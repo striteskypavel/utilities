@@ -3,15 +3,15 @@ import json
 import bcrypt
 from datetime import datetime
 
-# Konstanta pro adresář s daty uživatelů
-USER_DATA_DIR = os.getenv("USER_DATA_DIR", os.path.join("data", "users"))
-
-# Vytvoření všech potřebných adresářů
-os.makedirs(USER_DATA_DIR, exist_ok=True)
+def get_user_data_dir():
+    """Vrátí cestu k adresáři s daty uživatelů"""
+    user_data_dir = os.getenv("USER_DATA_DIR", os.path.join("data", "users"))
+    os.makedirs(user_data_dir, exist_ok=True)
+    return user_data_dir
 
 def get_user_file_path(username):
     """Vrátí cestu k souboru s daty uživatele"""
-    return os.path.join(USER_DATA_DIR, f"{username}.json")
+    return os.path.join(get_user_data_dir(), f"{username}.json")
 
 def is_email_registered(email: str) -> bool:
     """
@@ -25,9 +25,9 @@ def is_email_registered(email: str) -> bool:
     """
     try:
         # Procházení všech uživatelských souborů
-        for filename in os.listdir(USER_DATA_DIR):
+        for filename in os.listdir(get_user_data_dir()):
             if filename.endswith('.json'):
-                with open(os.path.join(USER_DATA_DIR, filename), 'r', encoding='utf-8') as f:
+                with open(os.path.join(get_user_data_dir(), filename), 'r', encoding='utf-8') as f:
                     user_data = json.load(f)
                     if user_data.get('email') == email:
                         return True
@@ -49,12 +49,18 @@ def create_user(username: str, password: str, email: str) -> bool:
         bool: True pokud se uživatel podařilo vytvořit, jinak False
     """
     try:
+        print(f"Creating user in directory: {get_user_data_dir()}")
+        user_file = get_user_file_path(username)
+        print(f"User file path: {user_file}")
+        
         # Kontrola existence uživatele
-        if os.path.exists(get_user_file_path(username)):
+        if os.path.exists(user_file):
+            print(f"User file already exists: {user_file}")
             return False
         
         # Kontrola, zda e-mail již není registrován
         if is_email_registered(email):
+            print(f"Email already registered: {email}")
             return False
         
         # Hash hesla pomocí bcrypt
@@ -67,14 +73,18 @@ def create_user(username: str, password: str, email: str) -> bool:
             "email": email,
             "created_at": datetime.now().isoformat()
         }
+        print(f"User data prepared: {user_data}")
         
         # Uložení dat uživatele
-        with open(get_user_file_path(username), "w", encoding="utf-8") as f:
+        with open(user_file, "w", encoding="utf-8") as f:
             json.dump(user_data, f, ensure_ascii=False, indent=2)
+        print(f"User data saved to: {user_file}")
         
         return True
     except Exception as e:
-        print(f"Chyba při vytváření uživatele: {e}")
+        print(f"Error creating user: {str(e)}")
+        print(f"Current directory: {os.getcwd()}")
+        print(f"Directory contents: {os.listdir('.')}")
         return False
 
 def verify_user(username, password):
@@ -129,4 +139,34 @@ def update_user_password(username, old_password, new_password):
     with open(user_file, "w", encoding="utf-8") as f:
         json.dump(user_data, f, ensure_ascii=False, indent=2)
     
-    return True, "Heslo bylo úspěšně změněno" 
+    return True, "Heslo bylo úspěšně změněno"
+
+def update_user_data(username, update_data):
+    """Aktualizuje data uživatele.
+    
+    Args:
+        username (str): Uživatelské jméno
+        update_data (dict): Slovník s daty k aktualizaci
+        
+    Returns:
+        bool: True pokud se aktualizace povedla, jinak False
+    """
+    try:
+        user_file = get_user_file_path(username)
+        if not os.path.exists(user_file):
+            return False
+            
+        with open(user_file, 'r', encoding='utf-8') as f:
+            user_data = json.load(f)
+            
+        # Aktualizace dat
+        user_data.update(update_data)
+        
+        # Uložení aktualizovaných dat
+        with open(user_file, 'w', encoding='utf-8') as f:
+            json.dump(user_data, f, ensure_ascii=False, indent=2)
+            
+        return True
+    except Exception as e:
+        print(f"Chyba při aktualizaci dat uživatele: {str(e)}")
+        return False 
