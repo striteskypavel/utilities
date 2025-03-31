@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'docs/**'
+      - 'v02/docs/**'
       - '.github/workflows/deploy-docs.yml'
 
 permissions:
@@ -29,7 +29,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'docs'
+          path: 'v02/docs'
           
       - name: Deploy to GitHub Pages
         id: deployment
