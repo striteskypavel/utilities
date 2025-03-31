@@ -48,40 +48,77 @@ class TestFinanceApp(unittest.TestCase):
 
     def test_user_registration(self):
         """Test registrace nového uživatele"""
-        # Nejprve smažeme existujícího uživatele, pokud existuje
-        if os.path.exists(self.user_file):
-            os.remove(self.user_file)
+        # Vytvoření unikátního uživatelského jména
+        unique_username = f"test_user_{datetime.now().timestamp()}"
+        unique_email = f"test_{datetime.now().timestamp()}@example.com"
         
         # Registrace nového uživatele
         success = create_user(
-            self.test_username,
+            unique_username,
             self.test_password,
-            self.test_email
+            unique_email
         )
         
         self.assertTrue(success)
-        self.assertTrue(os.path.exists(self.user_file))
+        
+        # Získání cesty k souboru pomocí funkce z user_manager
+        user_file = get_user_file_path(unique_username)
+        self.assertTrue(os.path.exists(user_file))
         
         # Ověření dat uživatele
-        user_data = get_user_data(self.test_username)
-        self.assertEqual(user_data["username"], self.test_username)
-        self.assertEqual(user_data["email"], self.test_email)
+        user_data = get_user_data(unique_username)
+        self.assertEqual(user_data["username"], unique_username)
+        self.assertEqual(user_data["email"], unique_email)
         self.assertTrue("created_at" in user_data)
+        
+        # Úklid
+        if os.path.exists(user_file):
+            os.remove(user_file)
 
     def test_user_login(self):
-        """Test přihlášení nového uživatele"""
-        # Nejprve vytvoříme uživatele
+        """Test přihlášení uživatele - různé scénáře"""
+        # Test 1: Úspěšné přihlášení
         create_user(
             self.test_username,
             self.test_password,
             self.test_email
         )
         
-        # Ověření přihlášení
         success, user_data = verify_user(self.test_username, self.test_password)
         self.assertTrue(success)
         self.assertEqual(user_data["username"], self.test_username)
         self.assertEqual(user_data["email"], self.test_email)
+        
+        # Test 2: Nesprávné heslo
+        success, user_data = verify_user(self.test_username, "wrong_password")
+        self.assertFalse(success)
+        self.assertIsNone(user_data)
+        
+        # Test 3: Neexistující uživatel
+        success, user_data = verify_user("nonexistent_user", self.test_password)
+        self.assertFalse(success)
+        self.assertIsNone(user_data)
+        
+        # Test 4: Prázdné přihlašovací údaje
+        success, user_data = verify_user("", "")
+        self.assertFalse(success)
+        self.assertIsNone(user_data)
+        
+        # Test 5: Speciální znaky v hesle
+        special_password = "Test123!@#$%^&*()"
+        create_user(
+            "special_user",
+            special_password,
+            "special@example.com"
+        )
+        success, user_data = verify_user("special_user", special_password)
+        self.assertTrue(success)
+        self.assertEqual(user_data["username"], "special_user")
+        
+        # Test 6: Citlivost na velikost písmen v hesle
+        success, user_data = verify_user(self.test_username, self.test_password.upper())
+        self.assertFalse(success)
+        self.assertIsNone(user_data)
 
     def test_page_navigation(self):
         """Test zobrazení všech stránek"""

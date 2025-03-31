@@ -1,7 +1,12 @@
 import os
 import json
 import bcrypt
-from datetime import datetime
+from datetime import datetime, timedelta
+import streamlit as st
+import extra_streamlit_components as stx
+
+# Globální proměnná pro CookieManager
+_cookie_manager = None
 
 def get_user_data_dir():
     """Vrátí cestu k adresáři s daty uživatelů"""
@@ -169,4 +174,26 @@ def update_user_data(username, update_data):
         return True
     except Exception as e:
         print(f"Chyba při aktualizaci dat uživatele: {str(e)}")
-        return False 
+        return False
+
+def get_cookie_manager():
+    """Získá nebo vytvoří instanci CookieManageru."""
+    global _cookie_manager
+    if _cookie_manager is None:
+        _cookie_manager = stx.CookieManager(key="finance_app_cookie_manager")
+    return _cookie_manager
+
+def create_session_cookie(username):
+    """Vytvoří session cookie pro přihlášeného uživatele."""
+    cookie_manager = get_cookie_manager()
+    cookie_manager.set('username', username, key="set_cookie")
+
+def get_session_cookie():
+    """Získá username z session cookie."""
+    cookie_manager = get_cookie_manager()
+    return cookie_manager.get('username')
+
+def clear_session_cookie():
+    """Vymaže session cookie."""
+    cookie_manager = get_cookie_manager()
+    cookie_manager.delete('username', key="delete_cookie") 

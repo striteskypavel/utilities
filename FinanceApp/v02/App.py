@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 from data_manager import (
     load_data, save_data, add_entry,
-    export_data, import_data, get_history
+    export_data, import_data, get_history, DataManager
 )
 from visualizations import (
     show_pie_chart, show_history_chart, 
@@ -12,15 +12,20 @@ from visualizations import (
 )
 from history_manager import log_change, load_history, clear_history, delete_history_entries
 from config import DEFAULT_CATEGORIES
-from retirement_planner import show_retirement_planning
+from retirement_planning import show_retirement_planning
 from mortgage_calculator import show_mortgage_calculator
 from compound_interest import show_compound_interest_calculator
 from salary_calculator import show_salary_calculator
-from user_manager import create_user, verify_user, get_user_data, update_user_password, get_user_file_path, is_email_registered
+from user_manager import (
+    create_user, verify_user, get_user_data, update_user_password,
+    get_user_file_path, is_email_registered, create_session_cookie,
+    get_session_cookie, clear_session_cookie
+)
 import os
 import time
 from expense_tracker import show_expense_tracker
 import plotly.express as px
+import plotly.graph_objects as go
 
 # Konfigurace stránky
 st.set_page_config(
@@ -29,138 +34,72 @@ st.set_page_config(
     layout="wide"
 )
 
-def show_login_page():
-    """Zobrazí přihlašovací stránku"""
-    # Vytvoření tří sloupců pro centrování obsahu
-    col1, col2, col3 = st.columns([1, 2, 1])
+def show_login():
+    """Zobrazí přihlašovací formulář"""
+    # Vytvoření tří sloupců pro centrování formuláře
+    left_col, center_col, right_col = st.columns([1, 2, 1])
     
-    with col2:
+    with center_col:
         st.title("Přihlášení")
-        st.markdown("""
-        ### Vítejte v Finance App
         
-        Tato aplikace vám pomůže:
-        - Sledovat vaše výdaje a příjmy
-        - Analyzovat finanční trendy
-        - Plánovat rozpočet
-        - Spravovat vaše finance efektivně
-        """)
+        # Kontrola session cookie
+        username_cookie = get_session_cookie()
+        if username_cookie:
+            st.success(f"Přihlášen jako {username_cookie}")
+            if st.button("Odhlásit se"):
+                clear_session_cookie()
+                st.rerun()
+            return username_cookie
         
-        st.subheader("Přihlášení")
-        with st.form("login_form"):
+        # Přihlašovací formulář
+        with st.form("login_form", clear_on_submit=True):
             username = st.text_input("Uživatelské jméno")
             password = st.text_input("Heslo", type="password")
-            submit = st.form_submit_button("Přihlásit se", use_container_width=True)
+            submit = st.form_submit_button("Přihlásit se")
             
             if submit:
                 success, user_data = verify_user(username, password)
                 if success:
-                    st.session_state['logged_in'] = True
-                    st.session_state['username'] = username
+                    create_session_cookie(username)
+                    st.session_state.username = username
+                    st.session_state.logged_in = True
+                    st.success("Přihlášení úspěšné!")
                     st.rerun()
                 else:
-                    st.error("Nesprávné uživatelské jméno nebo heslo")
+                    st.error("Nesprávné přihlašovací údaje")
         
+        # Registrační formulář
         st.markdown("---")
         st.subheader("Registrace nového uživatele")
-        
-        # Inicializace session state pro registrační formulář
-        if 'registration_submitted' not in st.session_state:
-            st.session_state.registration_submitted = False
-        
-        with st.form("register_form"):
-            if not st.session_state.registration_submitted:
-                new_username = st.text_input("Nové uživatelské jméno")
-                new_password = st.text_input("Nové heslo", type="password")
-                confirm_password = st.text_input("Potvrzení hesla", type="password")
-                email = st.text_input("E-mail")
-            else:
-                new_username = ""
-                new_password = ""
-                confirm_password = ""
-                email = ""
-                st.session_state.registration_submitted = False
-            
-            register = st.form_submit_button("Registrovat", use_container_width=True)
+        with st.form("register_form", clear_on_submit=True):
+            new_username = st.text_input("Nové uživatelské jméno")
+            new_password = st.text_input("Nové heslo", type="password")
+            confirm_password = st.text_input("Potvrzení hesla", type="password")
+            email = st.text_input("E-mail")
+            register = st.form_submit_button("Registrovat se")
             
             if register:
-                # Validace všech polí
-                if not new_username or not new_username.strip():
-                    st.error("Zadejte uživatelské jméno")
-                elif not new_password or not new_password.strip():
-                    st.error("Zadejte heslo")
-                elif not confirm_password or not confirm_password.strip():
-                    st.error("Potvrďte heslo")
-                elif not email or not email.strip():
-                    st.error("Zadejte e-mail")
-                elif new_password != confirm_password:
+                if new_password != confirm_password:
                     st.error("Hesla se neshodují")
+                elif is_email_registered(email):
+                    st.error("Tento e-mail je již registrován")
                 else:
-                    # Validace síly hesla
-                    password_errors = []
-                    if len(new_password) < 8:
-                        password_errors.append("Heslo musí mít alespoň 8 znaků")
-                    if not any(c.isupper() for c in new_password):
-                        password_errors.append("Heslo musí obsahovat alespoň jedno velké písmeno")
-                    if not any(c.islower() for c in new_password):
-                        password_errors.append("Heslo musí obsahovat alespoň jedno malé písmeno")
-                    if not any(c.isdigit() for c in new_password):
-                        password_errors.append("Heslo musí obsahovat alespoň jednu číslici")
-                    if not any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?" for c in new_password):
-                        password_errors.append("Heslo musí obsahovat alespoň jeden speciální znak")
-                    
-                    if password_errors:
-                        st.error("Heslo nesplňuje požadavky na bezpečnost:")
-                        for error in password_errors:
-                            st.error(error)
+                    if create_user(new_username, new_password, email):
+                        st.success("Registrace úspěšná! Můžete se přihlásit.")
+                        st.rerun()
                     else:
-                        # Validace e-mailu
-                        import re
-                        
-                        def validate_email(email):
-                            # Základní formát
-                            email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-                            if not re.match(email_pattern, email):
-                                return False, "Neplatný formát e-mailové adresy"
-                            
-                            # Kontrola běžných překlepů v doménách
-                            common_domains = {
-                                'gmail.com': ['gmai.com', 'gmail.cz', 'gmal.com', 'gmail.co', 'gmai2.com'],
-                                'seznam.cz': ['seznan.cz', 'seznam.com', 'seznamcz'],
-                                'email.cz': ['emil.cz', 'email.com'],
-                                'yahoo.com': ['yaho.com', 'yahoo.cz', 'yahho.com'],
-                                'outlook.com': ['outlok.com', 'outlook.cz', 'outlock.com']
-                            }
-                            
-                            domain = email.split('@')[1].lower()
-                            
-                            # Kontrola známých překlepů
-                            for valid_domain, typos in common_domains.items():
-                                if domain in typos:
-                                    return False, f"Možná jste měli na mysli @{valid_domain}?"
-                            
-                            # Kontrola minimální délky domény druhého řádu
-                            domain_parts = domain.split('.')
-                            if len(domain_parts) < 2 or any(len(part) < 2 for part in domain_parts):
-                                return False, "Neplatná doména"
-                            
-                            return True, ""
-                        
-                        email_valid, email_error = validate_email(email)
-                        if not email_valid:
-                            st.error(email_error)
-                        else:
-                            # Kontrola existence uživatele
-                            if os.path.exists(get_user_file_path(new_username)):
-                                st.error("Uživatelské jméno již existuje. Zvolte jiné.")
-                            elif is_email_registered(email):
-                                st.error("E-mailová adresa je již registrována. Použijte jinou.")
-                            elif create_user(new_username, new_password, email):
-                                st.success("Registrace byla úspěšná! Můžete se přihlásit.")
-                                st.session_state.registration_submitted = True
-                                st.rerun()
-                            else:
-                                st.error("Nastala chyba při registraci. Zkuste to prosím znovu.")
+                        st.error("Uživatelské jméno je již obsazeno")
+    
+    return None
+
+def show_logout():
+    """Zobrazí odhlašovací tlačítko."""
+    if st.sidebar.button("Odhlásit se"):
+        # Vyčištění session state a cookie
+        st.session_state.pop("username", None)
+        st.session_state.pop("logged_in", None)
+        clear_session_cookie()
+        st.rerun()
 
 def show_main_app(username, name):
     """Zobrazí hlavní aplikaci po přihlášení"""
@@ -214,7 +153,7 @@ def show_main_app(username, name):
 
     # Zobrazení vybrané stránky
     if st.session_state["current_page"] == "Přehled investic":
-        show_overview(username)
+        show_investment_overview(username)
     elif st.session_state["current_page"] == "Sledování výdajů":
         show_expense_tracker(username)
     elif st.session_state["current_page"] == "Hypoteční kalkulačka":
@@ -321,712 +260,418 @@ def show_export_import_module(username: str, data: dict, module_type: str):
                 if os.path.exists(temp_file):
                     os.remove(temp_file)
 
-def show_overview(username):
-    """Zobrazí přehled investic uživatele."""
+def show_investment_overview(username):
+    """Zobrazení přehledu investic"""
     st.title("Přehled investic")
     
-    # Načtení dat
-    data = load_data(username)
-    if not data:
-        st.error("Nepodařilo se načíst data uživatele.")
-        return
+    # Načtení existujících investic
+    data_manager = DataManager()
+    investments = data_manager.load_investments(username)
     
-    # Přidání Export/Import sekce
-    with st.expander("Export/Import investičních dat", expanded=False):
-        show_export_import_module(username, data, "Investice")
+    # Formulář pro přidání nové investice
+    st.subheader("1. Přidat novou investici")
     
-    # Definice kategorií investic a jejich popis
-    investment_categories = {
-        "ETF": {
-            "subcategories": ["VWCE", "SDPR S&P 500", "iShares MSCI World"],
-            "description": "Burzovně obchodované fondy"
-        },
-        "Akcie": {
-            "subcategories": ["Dividendové akcie", "Růstové akcie", "České akcie"],
-            "description": "Přímé investice do akcií"
-        },
-        "Kryptoměny": {
-            "subcategories": ["Bitcoin", "Ethereum", "Altcoiny"],
-            "description": "Digitální měny"
-        },
-        "Nemovitosti": {
-            "subcategories": ["Vlastní bydlení", "Investiční nemovitosti", "REITs"],
-            "description": "Nemovitostní investice"
-        },
-        "Dluhopisy": {
-            "subcategories": ["Státní dluhopisy", "Korporátní dluhopisy", "Dluhopisové fondy"],
-            "description": "Dluhové cenné papíry"
-        },
-        "Hotovost": {
-            "subcategories": ["Běžný účet", "Spořící účet", "Termínované vklady"],
-            "description": "Likvidní prostředky"
-        },
-        "Důchodové pojištění": {
-            "subcategories": ["Penzijní připojištění", "Doplňkové penzijní spoření", "Důchodové fondy", "Rentové pojištění", "Investiční životní pojištění", "Důchodové účty", "Důchodové fondy", "Důchodové rezervy", "Důchodové plány", "Důchodové produkty"],
-            "description": "Důchodové zabezpečení"
-        }
-    }
-    
-    # Vytvoření DataFrame pro přehled
-    overview_data = []
-    for category, subcategories in investment_categories.items():
-        category_total = 0
-        for subcategory in subcategories["subcategories"]:
-            if subcategory in data:
-                if isinstance(data[subcategory], list):
-                    total = sum(entry['amount'] for entry in data[subcategory])
-                else:
-                    total = data[subcategory]['amount']
-                category_total += total
-                overview_data.append({
-                    'Kategorie': category,
-                    'Podkategorie': subcategory,
-                    'Hodnota': total
-                })
+    # Formulář pro přidání investice
+    with st.form("add_investment_form"):
+        col1, col2 = st.columns(2)
+        with col1:
+            amount = st.number_input("Částka (Kč)", min_value=0.0, value=0.0, step=1000.0)
+            investment_type = st.selectbox("Typ investice", ["ETF", "Akcie", "Kryptoměny"])
         
-        # Přidání řádku s celkovým součtem pro kategorii
-        overview_data.append({
-            'Kategorie': category,
-            'Podkategorie': 'CELKEM',
-            'Hodnota': category_total
-        })
-    
-    # Vytvoření DataFrame
-    df_overview = pd.DataFrame(overview_data)
-    
-    # Výpočet celkového součtu
-    total_sum = df_overview[df_overview['Podkategorie'] == 'CELKEM']['Hodnota'].sum()
-    
-    # Přidání řádku s celkovým součtem
-    df_overview = pd.concat([
-        df_overview,
-        pd.DataFrame([{
-            'Kategorie': 'CELKEM',
-            'Podkategorie': 'CELKEM',
-            'Hodnota': total_sum
-        }])
-    ], ignore_index=True)
-    
-    # 1. Klíčové metriky v řádku
-    st.subheader("Klíčové metriky")
-    
-    # Vytvoření dvou řad metrik
-    row1_cols = st.columns(4)
-    row2_cols = st.columns(4)
-    
-    # První řada - Celkový objem a hlavní kategorie
-    with row1_cols[0]:
-        st.metric(
-            "Celkový objem investic",
-            f"{total_sum:,.0f} Kč",
-            help="Celková hodnota všech investic"
-        )
-    
-    with row1_cols[1]:
-        etf_total = df_overview[
-            (df_overview['Kategorie'] == 'ETF') & 
-            (df_overview['Podkategorie'] == 'CELKEM')
-        ]['Hodnota'].iloc[0]
-        etf_percentage = (etf_total / total_sum * 100) if total_sum > 0 else 0
-        st.metric("ETF", f"{etf_total:,.0f} Kč", f"{etf_percentage:.1f}%")
-    
-    with row1_cols[2]:
-        stocks_total = df_overview[
-            (df_overview['Kategorie'] == 'Akcie') & 
-            (df_overview['Podkategorie'] == 'CELKEM')
-        ]['Hodnota'].iloc[0]
-        stocks_percentage = (stocks_total / total_sum * 100) if total_sum > 0 else 0
-        st.metric("Akcie", f"{stocks_total:,.0f} Kč", f"{stocks_percentage:.1f}%")
-    
-    with row1_cols[3]:
-        crypto_total = df_overview[
-            (df_overview['Kategorie'] == 'Kryptoměny') & 
-            (df_overview['Podkategorie'] == 'CELKEM')
-        ]['Hodnota'].iloc[0]
-        crypto_percentage = (crypto_total / total_sum * 100) if total_sum > 0 else 0
-        st.metric("Kryptoměny", f"{crypto_total:,.0f} Kč", f"{crypto_percentage:.1f}%")
-    
-    # Druhá řada - Ostatní kategorie
-    with row2_cols[0]:
-        real_estate_total = df_overview[
-            (df_overview['Kategorie'] == 'Nemovitosti') & 
-            (df_overview['Podkategorie'] == 'CELKEM')
-        ]['Hodnota'].iloc[0]
-        real_estate_percentage = (real_estate_total / total_sum * 100) if total_sum > 0 else 0
-        st.metric("Nemovitosti", f"{real_estate_total:,.0f} Kč", f"{real_estate_percentage:.1f}%")
-    
-    with row2_cols[1]:
-        bonds_total = df_overview[
-            (df_overview['Kategorie'] == 'Dluhopisy') & 
-            (df_overview['Podkategorie'] == 'CELKEM')
-        ]['Hodnota'].iloc[0]
-        bonds_percentage = (bonds_total / total_sum * 100) if total_sum > 0 else 0
-        st.metric("Dluhopisy", f"{bonds_total:,.0f} Kč", f"{bonds_percentage:.1f}%")
-    
-    with row2_cols[2]:
-        cash_total = df_overview[
-            (df_overview['Kategorie'] == 'Hotovost') & 
-            (df_overview['Podkategorie'] == 'CELKEM')
-        ]['Hodnota'].iloc[0]
-        cash_percentage = (cash_total / total_sum * 100) if total_sum > 0 else 0
-        st.metric("Hotovost", f"{cash_total:,.0f} Kč", f"{cash_percentage:.1f}%")
-    
-    with row2_cols[3]:
-        pension_total = df_overview[
-            (df_overview['Kategorie'] == 'Důchodové pojištění') & 
-            (df_overview['Podkategorie'] == 'CELKEM')
-        ]['Hodnota'].iloc[0]
-        pension_percentage = (pension_total / total_sum * 100) if total_sum > 0 else 0
-        st.metric("Důchodové pojištění", f"{pension_total:,.0f} Kč", f"{pension_percentage:.1f}%")
-    
-    # 2. Přidání/Editace investic
-    st.subheader("Správa investic")
-    
-    # Vytvoření dvou sloupců pro přidání a editaci
-    add_col, edit_col = st.columns(2)
-    
-    with add_col:
-        st.markdown("#### Přidat novou investici")
-        with st.form("add_investment"):
-            selected_category = st.selectbox(
-                "Kategorie",
-                list(investment_categories.keys()),
-                help="Vyberte hlavní kategorii investice"
-            )
-            
-            selected_subcategory = st.text_input(
-                "Podkategorie",
-                help="Zadejte název podkategorie"
-            )
-            
-            amount = st.number_input(
-                "Částka (Kč)",
-                min_value=0,
-                step=1000,
-                help="Zadejte hodnotu investice"
-            )
-
-            # Pouze výběr data
-            date = st.date_input(
-                "Datum",
-                value=datetime.now(),
-                help="Vyberte datum investice"
-            )
-            
-            note = st.text_area(
-                "Poznámka",
-                help="Volitelný popis investice"
-            )
-            
-            submitted = st.form_submit_button("Přidat investici")
-            
-            if submitted and amount > 0:
-                # Přidání nové investice do dat
-                # Použití pouze data (čas bude nastaven na půlnoc)
-                timestamp = datetime.combine(date, datetime.min.time())
+        with col2:
+            name = st.text_input("Název")
+            date = st.date_input("Datum")
+            note = st.text_input("Poznámka")
+        
+        submitted = st.form_submit_button("Přidat")
+        if submitted:
+            if amount > 0 and name:
                 new_investment = {
                     "amount": amount,
-                    "timestamp": timestamp.isoformat(),
-                    "note": note,
-                    "type": selected_subcategory
+                    "type": investment_type,
+                    "name": name,
+                    "date": date.strftime("%Y-%m-%d"),
+                    "note": note
                 }
-                
-                if selected_subcategory not in data:
-                    data[selected_subcategory] = []
-                
-                if isinstance(data[selected_subcategory], list):
-                    data[selected_subcategory].append(new_investment)
-                else:
-                    data[selected_subcategory] = [new_investment]
-                
-                save_data(username, data)
+                investments.append(new_investment)
+                data_manager.save_investments(username, investments)
                 st.success("Investice byla úspěšně přidána!")
                 st.rerun()
-    
-    with edit_col:
-        st.markdown("#### Historie investic")
-        
-        # Vytvoření DataFrame pro historii
-        history_data = []
-        for category, subcategories in investment_categories.items():
-            for subcategory in subcategories["subcategories"]:
-                if subcategory in data:
-                    entries = data[subcategory]
-                    if isinstance(entries, list):
-                        for entry in entries:
-                            # Převod timestamp na datum
-                            entry_date = datetime.fromisoformat(entry["timestamp"]).date()
-                            history_data.append({
-                                "Datum": entry_date.strftime("%Y-%m-%d"),
-                                "Kategorie": category,
-                                "Podkategorie": subcategory,
-                                "Částka": entry["amount"],
-                                "Poznámka": entry.get("note", "")
-                            })
-        
-        if history_data:
-            history_df = pd.DataFrame(history_data)
-            # Seřazení podle data (sestupně)
-            history_df = history_df.sort_values("Datum", ascending=False)
-            
-            # Zobrazení editovatelné tabulky
-            edited_df = st.data_editor(
-                history_df,
-                hide_index=True,
-                use_container_width=True,
-                num_rows="dynamic"
-            )
-            
-            if st.button("Uložit změny"):
-                # TODO: Implementovat ukládání změn z editované tabulky
-                st.success("Změny byly uloženy!")
-                st.rerun()
-    
-    # 3. Grafické zobrazení
-    st.subheader("Grafické zobrazení")
-    
-    # Hlavní přepínač pro zobrazení procent/částek
-    show_percentages = st.checkbox("📊 Zobrazit procentuální zastoupení", value=True, help="Přepíná mezi zobrazením procent a částek ve všech grafech")
-    
-    # Vytvoření dvou sloupců pro grafy
-    chart_col1, chart_col2 = st.columns(2)
-    
-    with chart_col1:
-        # Koláčový graf pro aktuální rozložení
-        category_data = df_overview[
-            (df_overview['Podkategorie'] == 'CELKEM') & 
-            (df_overview['Kategorie'] != 'CELKEM')
-        ]
-        
-        if show_percentages:
-            # Výpočet procent pro každou kategorii
-            category_data = category_data.copy()  # Vytvoření kopie pro bezpečnou modifikaci
-            category_data['Procenta'] = (category_data['Hodnota'] / total_sum * 100).round(1)
-            values_col = 'Procenta'
-            title_suffix = ' (v %)'
-        else:
-            values_col = 'Hodnota'
-            title_suffix = ' (v Kč)'
-        
-        fig_pie = px.pie(
-            category_data,
-            values=values_col,
-            names='Kategorie',
-            title=f'Aktuální rozložení investic{title_suffix}',
-            hole=0.3
-        )
-        
-        # Přidání tooltipu s oběma hodnotami
-        fig_pie.update_traces(
-            textinfo='label+percent+value' if show_percentages else 'label+value',
-            hovertemplate="<b>%{label}</b><br>" +
-                         f"{'Procenta: %{percent:.1f}<br>' if show_percentages else ''}" +
-                         f"Hodnota: %{{value:,.0f}} Kč<br>" +
-                         "<extra></extra>"
-        )
-        
-        st.plotly_chart(fig_pie, use_container_width=True)
-    
-    with chart_col2:
-        # Graf vývoje v čase
-        if history_data:
-            # Přidání výběru časového intervalu
-            time_interval = st.selectbox(
-                "Časový interval",
-                ["Den", "Týden", "Měsíc", "Rok", "Vše"],
-                help="Vyberte interval pro agregaci dat"
-            )
-            
-            history_df['Datum'] = pd.to_datetime(history_df['Datum'])
-            
-            # Agregace dat podle zvoleného intervalu
-            if time_interval == "Den":
-                grouped_df = history_df.groupby(['Datum', 'Kategorie'])['Částka'].sum().reset_index()
-            elif time_interval == "Týden":
-                history_df['Týden'] = history_df['Datum'].dt.strftime('%Y-%U')
-                grouped_df = history_df.groupby(['Týden', 'Kategorie'])['Částka'].sum().reset_index()
-                grouped_df['Datum'] = pd.to_datetime(grouped_df['Týden'].apply(lambda x: f"{x}-1"), format='%Y-%U-%w')
-            elif time_interval == "Měsíc":
-                history_df['Měsíc'] = history_df['Datum'].dt.strftime('%Y-%m')
-                grouped_df = history_df.groupby(['Měsíc', 'Kategorie'])['Částka'].sum().reset_index()
-                grouped_df['Datum'] = pd.to_datetime(grouped_df['Měsíc'] + '-01')
-            elif time_interval == "Rok":
-                history_df['Rok'] = history_df['Datum'].dt.strftime('%Y')
-                grouped_df = history_df.groupby(['Rok', 'Kategorie'])['Částka'].sum().reset_index()
-                grouped_df['Datum'] = pd.to_datetime(grouped_df['Rok'] + '-01-01')
-            else:  # "Vše"
-                grouped_df = history_df.groupby(['Datum', 'Kategorie'])['Částka'].sum().reset_index()
-            
-            # Vytvoření grafu
-            fig_line = px.line(
-                grouped_df,
-                x='Datum',
-                y='Částka',
-                color='Kategorie',
-                title=f'Vývoj investic v čase (po {time_interval.lower()}ech)'
-            )
-            
-            # Úprava formátu data na ose X podle intervalu
-            if time_interval == "Den":
-                date_format = '%Y-%m-%d'
-            elif time_interval == "Týden":
-                date_format = 'Týden %U, %Y'
-            elif time_interval == "Měsíc":
-                date_format = '%B %Y'
-            elif time_interval == "Rok":
-                date_format = '%Y'
             else:
-                date_format = '%Y-%m-%d'
-            
-            fig_line.update_xaxes(
-                tickformat=date_format,
-                tickangle=45
+                st.error("Vyplňte prosím částku a název.")
+    
+    if investments:
+        # Převod na DataFrame a seřazení podle data
+        df = pd.DataFrame(investments)
+        df['date'] = pd.to_datetime(df['date'])
+        df = df.sort_values('date')
+        
+        # Získání posledních hodnot pro každý typ investice
+        latest_values = df.groupby('type').last().reset_index()
+        total_amount = latest_values['amount'].sum()
+        
+        # Přehled celkového jmění
+        st.subheader("2. Přehled celkového jmění")
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric(
+                "Celkový objem investic",
+                f"{total_amount:,.0f} Kč",
+                help="Celková hodnota všech investic"
             )
+        
+        # Zobrazení metrik pro každý typ investice
+        for i, (investment_type, amount) in enumerate(zip(latest_values['type'], latest_values['amount']), start=1):
+            if i < 4:  # Zobrazíme první 3 největší investice v metrikách
+                with locals()[f"col{i+1}"]:
+                    percentage = (amount / total_amount * 100) if total_amount > 0 else 0
+                    st.metric(
+                        investment_type,
+                        f"{amount:,.0f} Kč",
+                        f"{percentage:.1f}%"
+                    )
+        
+        # Přepínač pro zobrazení hodnot v procentech nebo absolutních hodnotách
+        show_percentages = st.checkbox("Zobrazit hodnoty v procentech", value=False)
+        
+        # Koláčový graf
+        st.subheader("3. Rozložení investic")
+        if not latest_values.empty:
+            fig_pie = go.Figure()
             
-            # Přidání možnosti přiblížení/oddálení
-            fig_line.update_layout(
-                xaxis=dict(rangeslider=dict(visible=True)),
+            if show_percentages:
+                # Výpočet procent pro každý typ
+                percentages = (latest_values['amount'] / total_amount * 100).round(1)
+                fig_pie.add_trace(go.Pie(
+                    labels=latest_values['type'],
+                    values=percentages,
+                    textinfo='label+percent',
+                    hovertemplate="<b>%{label}</b><br>%{value:.1f}%<extra></extra>"
+                ))
+                fig_pie.update_layout(title='Rozložení investic podle typu (v %)')
+            else:
+                fig_pie.add_trace(go.Pie(
+                    labels=latest_values['type'],
+                    values=latest_values['amount'],
+                    textinfo='label+value',
+                    hovertemplate="<b>%{label}</b><br>%{value:,.0f} Kč<extra></extra>"
+                ))
+                fig_pie.update_layout(title='Rozložení investic podle typu (v Kč)')
+            
+            fig_pie.update_layout(
+                showlegend=True,
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            )
+            st.plotly_chart(fig_pie, use_container_width=True)
+        
+        # Časový vývoj
+        st.subheader("4. Vývoj hodnoty investic v čase")
+        fig = go.Figure()
+        
+        # Přidání čar pro každý typ investice
+        for inv_type in df['type'].unique():
+            type_df = df[df['type'] == inv_type]
+            fig.add_trace(go.Scatter(
+                x=type_df['date'],
+                y=type_df['amount'],
+                name=inv_type,
+                mode='lines+markers'
+            ))
+        
+        # Přidání agregované čáry pro celkovou hodnotu
+        total_df = df.groupby('date')['amount'].sum().reset_index()
+        fig.add_trace(go.Scatter(
+            x=total_df['date'],
+            y=total_df['amount'],
+            name='Celkem',
+            mode='lines+markers',
+            line=dict(color='#FF6B6B', width=3)
+        ))
+        
+        # Aktualizace layoutu
+        fig.update_layout(
+            title='Vývoj hodnoty investic v čase',
+            xaxis_title='Datum',
+            yaxis_title='Hodnota (Kč)',
+            hovermode='x unified'
+        )
+        
+        # Zobrazení grafu
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Tabulka všech záznamů s možností mazání
+        st.subheader("5. Přehled všech záznamů")
+        
+        # Přidání sloupce pro mazání
+        df['Smazat'] = False
+        
+        # Vytvoření kopie DataFrame pro editaci
+        edited_df = st.data_editor(
+            df,
+            hide_index=True,
+            column_config={
+                'date': st.column_config.DateColumn(
+                    'Datum',
+                    format='DD.MM.YYYY'
+                ),
+                'amount': st.column_config.NumberColumn(
+                    'Částka',
+                    format='%.0f Kč'
+                ),
+                'Smazat': st.column_config.CheckboxColumn(
+                    'Smazat',
+                    help='Zaškrtněte pro smazání záznamu'
+                )
+            }
+        )
+        
+        # Zpracování mazání
+        if edited_df['Smazat'].any():
+            if st.button("Smazat vybrané záznamy"):
+                # Filtrování neoznačených záznamů
+                df_to_keep = edited_df[~edited_df['Smazat']]
+                # Převod datumů na string formát před uložením
+                df_to_keep['date'] = df_to_keep['date'].dt.strftime('%Y-%m-%d')
+                # Převod zpět na seznam slovníků
+                investments_to_keep = df_to_keep.drop('Smazat', axis=1).to_dict('records')
+                # Uložení aktualizovaných dat
+                data_manager.save_investments(username, investments_to_keep)
+                st.success("Vybrané záznamy byly úspěšně smazány!")
+                st.rerun()
+    else:
+        st.info("Zatím nemáte žádné investice. Přidejte novou investici pomocí formuláře výše.")
+
+def show_expense_tracker(username):
+    """Zobrazení stránky pro sledování výdajů"""
+    st.title("Sledování výdajů")
+    
+    # Načtení existujících výdajů
+    data_manager = DataManager()
+    expenses = data_manager.load_expenses(username)
+    
+    # Formulář pro přidání nového výdaje
+    st.subheader("1. Přidat nový výdaj")
+    
+    # Formulář pro přidání výdaje
+    with st.form("add_expense_form"):
+        col1, col2 = st.columns(2)
+        with col1:
+            amount = st.number_input("Částka (Kč)", min_value=0.0, value=0.0, step=100.0)
+        
+        with col2:
+            category = st.text_input("Kategorie")
+            transaction_type = st.selectbox("Typ transakce", ["Výdaj", "Příjem"])
+            date = st.date_input("Datum")
+            note = st.text_input("Poznámka")
+        
+        submitted = st.form_submit_button("Přidat")
+        if submitted:
+            if amount > 0 and category:
+                new_expense = {
+                    "amount": amount,
+                    "category": category,
+                    "type": transaction_type,
+                    "date": date.strftime("%Y-%m-%d"),
+                    "note": note
+                }
+                expenses.append(new_expense)
+                data_manager.save_expenses(username, expenses)
+                st.success("Výdaj byl úspěšně přidán!")
+                st.rerun()
+            else:
+                st.error("Vyplňte prosím částku a kategorii.")
+    
+    # Přehled výdajů a příjmů
+    st.subheader("2. Přehled výdajů a příjmů")
+    
+    # Výběr časového období
+    time_period = st.selectbox(
+        "Časové období",
+        ["Celkem", "Rok", "Měsíc", "Týden", "Den"],
+        index=0
+    )
+    
+    # Filtrování dat podle vybraného období
+    df = pd.DataFrame(expenses)
+    if not df.empty:
+        df['date'] = pd.to_datetime(df['date'])
+        now = pd.Timestamp.now()
+        
+        # Výběr konkrétního data podle období
+        if time_period != "Celkem":
+            if time_period == "Rok":
+                selected_date = st.date_input(
+                    "Vyberte rok",
+                    value=now,
+                    format="YYYY-MM-DD"
+                )
+                df = df[df['date'].dt.year == selected_date.year]
+            elif time_period == "Měsíc":
+                selected_date = st.date_input(
+                    "Vyberte měsíc",
+                    value=now,
+                    format="YYYY-MM-DD"
+                )
+                df = df[
+                    (df['date'].dt.year == selected_date.year) & 
+                    (df['date'].dt.month == selected_date.month)
+                ]
+            elif time_period == "Týden":
+                selected_date = st.date_input(
+                    "Vyberte týden",
+                    value=now,
+                    format="YYYY-MM-DD"
+                )
+                week_start = pd.Timestamp(selected_date) - pd.Timedelta(days=selected_date.weekday())
+                week_end = week_start + pd.Timedelta(days=6)
+                df = df[(df['date'] >= week_start) & (df['date'] <= week_end)]
+            elif time_period == "Den":
+                selected_date = st.date_input(
+                    "Vyberte den",
+                    value=now,
+                    format="YYYY-MM-DD"
+                )
+                df = df[df['date'].dt.date == selected_date]
+        
+        # Výpočet celkových částek
+        total_expenses = df[df['type'] == 'Výdaj']['amount'].sum()
+        total_income = df[df['type'] == 'Příjem']['amount'].sum()
+        balance = total_income - total_expenses
+        
+        # Zobrazení metrik
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Celkové výdaje", f"{total_expenses:,.0f} Kč")
+        with col2:
+            st.metric("Celkové příjmy", f"{total_income:,.0f} Kč")
+        with col3:
+            st.metric("Bilance", f"{balance:,.0f} Kč", 
+                     delta=f"{balance:,.0f} Kč" if balance != 0 else "0 Kč")
+        
+        # Histogramy výdajů a příjmů podle kategorií
+        st.subheader("3. Rozložení podle kategorií")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.write("Výdaje podle kategorií")
+            expense_df = df[df['type'] == 'Výdaj']
+            if not expense_df.empty:
+                fig = px.histogram(
+                    expense_df,
+                    x='category',
+                    y='amount',
+                    title=f'Výdaje podle kategorií ({time_period})',
+                    labels={'category': 'Kategorie', 'amount': 'Částka (Kč)'},
+                    color='category'
+                )
+                fig.update_layout(
+                    xaxis_title="Kategorie",
+                    yaxis_title="Částka (Kč)",
+                    showlegend=False
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("Pro vybrané období nejsou k dispozici žádné výdaje.")
+        
+        with col2:
+            st.write("Příjmy podle kategorií")
+            income_df = df[df['type'] == 'Příjem']
+            if not income_df.empty:
+                fig = px.histogram(
+                    income_df,
+                    x='category',
+                    y='amount',
+                    title=f'Příjmy podle kategorií ({time_period})',
+                    labels={'category': 'Kategorie', 'amount': 'Částka (Kč)'},
+                    color='category'
+                )
+                fig.update_layout(
+                    xaxis_title="Kategorie",
+                    yaxis_title="Částka (Kč)",
+                    showlegend=False
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("Pro vybrané období nejsou k dispozici žádné příjmy.")
+        
+        # Čárový graf příjmů a výdajů v čase
+        st.subheader("4. Vývoj příjmů a výdajů v čase")
+        if not df.empty:
+            # Agregace dat podle data
+            daily_data = df.groupby('date').apply(
+                lambda x: pd.Series({
+                    'income': x[x['type'] == 'Příjem']['amount'].sum(),
+                    'expenses': x[x['type'] == 'Výdaj']['amount'].sum()
+                })
+            ).reset_index()
+            
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(
+                x=daily_data['date'],
+                y=daily_data['income'],
+                name='Příjmy',
+                line=dict(color='green')
+            ))
+            fig.add_trace(go.Scatter(
+                x=daily_data['date'],
+                y=daily_data['expenses'],
+                name='Výdaje',
+                line=dict(color='red')
+            ))
+            
+            fig.update_layout(
+                title=f'Vývoj příjmů a výdajů ({time_period})',
+                xaxis_title='Datum',
+                yaxis_title='Částka (Kč)',
                 hovermode='x unified'
             )
             
-            st.plotly_chart(fig_line, use_container_width=True)
-        else:
-            st.info("Zatím nejsou k dispozici žádná historická data.")
-    
-    # 4. Detailní přehled podle kategorií
-    st.subheader("Detailní přehled")
-    
-    # Definice ikon pro kategorie
-    category_icons = {
-        "ETF": "📈",
-        "Akcie": "📊",
-        "Kryptoměny": "🪙",
-        "Nemovitosti": "🏠",
-        "Dluhopisy": "📜",
-        "Hotovost": "💵",
-        "Důchodové pojištění": "👴"
-    }
-    
-    # Vytvoření expanderu pro každou kategorii
-    for category, info in investment_categories.items():
-        icon = category_icons.get(category, "📊")  # Výchozí ikona pokud není definována
-        with st.expander(f"{icon} {category} - {info['description']}", expanded=False):
-            category_data = df_overview[
-                (df_overview['Kategorie'] == category) & 
-                (df_overview['Podkategorie'] != 'CELKEM')
-            ]
-            
-            if not category_data.empty:
-                # Vytvoření DataFrame pro kategorii
-                category_df = pd.DataFrame(category_data)
-                
-                # Zobrazení tabulky
-                st.dataframe(
-                    category_df,
-                    hide_index=True,
-                    use_container_width=True
-                )
-                
-                if show_percentages:
-                    # Výpočet procent pro každou podkategorii
-                    category_df = category_df.copy()  # Vytvoření kopie pro bezpečnou modifikaci
-                    category_total = category_df['Hodnota'].sum()
-                    category_df['Procenta'] = (category_df['Hodnota'] / category_total * 100).round(1)
-                    values_col = 'Procenta'
-                    title_suffix = ' (v %)'
-                else:
-                    values_col = 'Hodnota'
-                    title_suffix = ' (v Kč)'
-                
-                # Vytvoření koláčového grafu pro kategorii
-                fig = px.pie(
-                    category_df,
-                    values=values_col,
-                    names='Podkategorie',
-                    title=f'Rozložení investic v kategorii {category}{title_suffix}',
-                    hole=0.3
-                )
-                
-                # Přidání tooltipu s oběma hodnotami
-                fig.update_traces(
-                    textinfo='label+percent+value' if show_percentages else 'label+value',
-                    hovertemplate="<b>%{label}</b><br>" +
-                                f"{'Procenta: %{percent:.1f}<br>' if show_percentages else ''}" +
-                                f"Hodnota: %{{value:,.0f}} Kč<br>" +
-                                "<extra></extra>"
-                )
-                
-                st.plotly_chart(fig, use_container_width=True)
-                
-                # Zobrazení historie pro kategorii
-                if history_data:
-                    category_history = [d for d in history_data if d["Kategorie"] == category]
-                    if category_history:
-                        st.markdown("##### Historie transakcí")
-                        category_history_df = pd.DataFrame(category_history)
-                        st.dataframe(
-                            category_history_df.sort_values("Datum", ascending=False),
-                            hide_index=True,
-                            use_container_width=True
-                        )
-            else:
-                st.info(f"V kategorii {category} zatím nejsou žádné investice.")
-
-def show_expense_tracker(username):
-    """Zobrazí sledování výdajů."""
-    st.title("Sledování výdajů")
-    
-    # Načtení dat
-    data = load_data(username)
-    if not data:
-        st.error("Nepodařilo se načíst data uživatele.")
-        return
-    
-    # Přidání Export/Import sekce
-    with st.expander("Export/Import výdajových dat", expanded=False):
-        show_export_import_module(username, data, "Výdaje")
-    
-    # Definice kategorií výdajů a jejich popis
-    expense_categories = {
-        "Bydlení": {
-            "subcategories": ["Nájem/Hypotéka", "Energie", "Internet/TV", "Údržba"],
-            "description": "Výdaje spojené s bydlením"
-        },
-        "Jídlo": {
-            "subcategories": ["Potraviny", "Restaurace", "Dovoz jídla", "Kantýna"],
-            "description": "Stravování a potraviny"
-        },
-        "Doprava": {
-            "subcategories": ["MHD", "Auto", "Pohonné hmoty", "Údržba vozidla"],
-            "description": "Výdaje na dopravu"
-        },
-        "Zábava": {
-            "subcategories": ["Kino/Divadlo", "Sport", "Koníčky", "Cestování"],
-            "description": "Volnočasové aktivity"
-        },
-        "Zdraví": {
-            "subcategories": ["Léky", "Lékař", "Pojištění", "Wellness"],
-            "description": "Zdravotní výdaje"
-        },
-        "Oblečení": {
-            "subcategories": ["Oblečení", "Obuv", "Doplňky", "Péče o oděvy"],
-            "description": "Výdaje za oblečení"
-        },
-        "Vzdělávání": {
-            "subcategories": ["Kurzy", "Knihy", "Online kurzy", "Školné"],
-            "description": "Investice do vzdělání"
-        }
-    }
-    
-    # Vytvoření DataFrame pro přehled
-    overview_data = []
-    total_expenses = 0
-    total_income = 0
-    
-    # Procházení dat a vytvoření přehledu
-    for category, info in expense_categories.items():
-        category_total = 0
-        for subcategory in info["subcategories"]:
-            if subcategory in data:
-                if isinstance(data[subcategory], list):
-                    for entry in data[subcategory]:
-                        amount = entry.get('amount', 0)
-                        entry_type = entry.get('type', 'výdaj')
-                        
-                        if entry_type == 'příjem':
-                            total_income += amount
-                        else:
-                            category_total += amount
-                            total_expenses += amount
-                        
-                        overview_data.append({
-                            'Kategorie': category,
-                            'Podkategorie': subcategory,
-                            'Částka': amount,
-                            'Typ': entry_type,
-                            'Datum': entry.get('timestamp', ''),
-                            'Poznámka': entry.get('note', '')
-                        })
-    
-    # Vytvoření DataFrame
-    df_overview = pd.DataFrame(overview_data)
-    
-    # 1. Klíčové metriky
-    st.subheader("Přehled financí")
-    
-    # Vytvoření tří sloupců pro metriky
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.metric(
-            "Celkové výdaje",
-            f"{total_expenses:,.0f} Kč",
-            help="Celková hodnota všech výdajů"
-        )
-    
-    with col2:
-        st.metric(
-            "Celkové příjmy",
-            f"{total_income:,.0f} Kč",
-            help="Celková hodnota všech příjmů"
-        )
-    
-    with col3:
-        balance = total_income - total_expenses
-        st.metric(
-            "Bilance",
-            f"{balance:,.0f} Kč",
-            f"{'+' if balance >= 0 else ''}{balance/total_income*100:.1f}%" if total_income > 0 else "0%",
-            help="Rozdíl mezi příjmy a výdaji"
-        )
-    
-    # 2. Přidání/Editace výdajů
-    st.subheader("Správa financí")
-    
-    # Vytvoření dvou sloupců pro přidání a editaci
-    add_col, edit_col = st.columns(2)
-    
-    with add_col:
-        st.markdown("#### Přidat nový záznam")
-        with st.form("add_entry_form"):
-            col1, col2 = st.columns(2)
-            with col1:
-                # Inicializace session state pro kategorii a podkategorii
-                if 'selected_category' not in st.session_state:
-                    st.session_state.selected_category = list(expense_categories.keys())[0]
-                if 'selected_subcategory' not in st.session_state:
-                    st.session_state.selected_subcategory = ""
-                
-                category = st.selectbox(
-                    "Kategorie",
-                    list(expense_categories.keys()),
-                    key="category_select"
-                )
-                
-                # Aktualizace podkategorie při změně kategorie
-                if st.session_state.category_select != st.session_state.selected_category:
-                    st.session_state.selected_category = st.session_state.category_select
-                    st.session_state.selected_subcategory = ""
-                
-                subcategory = st.text_input(
-                    "Podkategorie",
-                    value=st.session_state.selected_subcategory,
-                    key="subcategory_input"
-                )
-                
-                # Aktualizace session state pro podkategorii
-                st.session_state.selected_subcategory = st.session_state.subcategory_input
-            
-            with col2:
-                amount = st.number_input("Částka (Kč)", min_value=0.0, step=1000.0)
-                note = st.text_input("Poznámka")
-            
-            submitted = st.form_submit_button("Přidat záznam")
-            
-            if submitted:
-                if add_entry(username, category, amount, note):
-                    st.success("Záznam byl úspěšně přidán!")
-                    st.rerun()
-                else:
-                    st.error("Chyba při přidávání záznamu!")
-    
-    with edit_col:
-        st.markdown("#### Historie transakcí")
+            st.plotly_chart(fig, use_container_width=True)
         
-        if not df_overview.empty:
-            # Zobrazení editovatelné tabulky
+        # Tabulka všech záznamů s možností mazání
+        st.subheader("5. Přehled všech záznamů")
+        if not df.empty:
+            # Přidání sloupce pro mazání
+            df['Smazat'] = False
+            
+            # Vytvoření kopie DataFrame pro editaci
             edited_df = st.data_editor(
-                df_overview,
+                df,
                 hide_index=True,
-                use_container_width=True,
-                num_rows="dynamic"
+                column_config={
+                    'date': st.column_config.DateColumn(
+                        'Datum',
+                        format='DD.MM.YYYY'
+                    ),
+                    'amount': st.column_config.NumberColumn(
+                        'Částka',
+                        format='%.0f Kč'
+                    ),
+                    'Smazat': st.column_config.CheckboxColumn(
+                        'Smazat',
+                        help='Zaškrtněte pro smazání záznamu'
+                    )
+                }
             )
             
-            if st.button("Uložit změny"):
-                # TODO: Implementovat ukládání změn z editované tabulky
-                st.success("Změny byly uloženy!")
-                st.rerun()
+            # Zpracování mazání
+            if edited_df['Smazat'].any():
+                if st.button("Smazat vybrané záznamy"):
+                    # Filtrování neoznačených záznamů
+                    df_to_keep = edited_df[~edited_df['Smazat']]
+                    # Převod datumů na string formát před uložením
+                    df_to_keep['date'] = df_to_keep['date'].dt.strftime('%Y-%m-%d')
+                    # Převod zpět na seznam slovníků
+                    expenses_to_keep = df_to_keep.drop('Smazat', axis=1).to_dict('records')
+                    # Uložení aktualizovaných dat
+                    data_manager.save_expenses(username, expenses_to_keep)
+                    st.success("Vybrané záznamy byly úspěšně smazány!")
+                    st.rerun()
         else:
-            st.info("Zatím nejsou k dispozici žádné záznamy.")
-    
-    # 3. Grafické zobrazení
-    st.subheader("Grafické zobrazení")
-    
-    if not df_overview.empty:
-        # Vytvoření dvou sloupců pro grafy
-        chart_col1, chart_col2 = st.columns(2)
-        
-        with chart_col1:
-            # Koláčový graf pro rozložení výdajů
-            expenses_by_category = df_overview[
-                (df_overview['Typ'] == 'výdaj')
-            ].groupby('Kategorie')['Částka'].sum().reset_index()
-            
-            if not expenses_by_category.empty:
-                fig_pie = px.pie(
-                    expenses_by_category,
-                    values='Částka',
-                    names='Kategorie',
-                    title='Rozložení výdajů podle kategorií',
-                    hole=0.3
-                )
-                st.plotly_chart(fig_pie, use_container_width=True)
-            else:
-                st.info("Zatím nejsou k dispozici žádné výdaje pro zobrazení grafu.")
-        
-        with chart_col2:
-            # Sloupcový graf pro porovnání příjmů a výdajů
-            if 'Datum' in df_overview.columns:
-                df_overview['Datum'] = pd.to_datetime(df_overview['Datum'])
-                monthly_summary = df_overview.groupby([
-                    df_overview['Datum'].dt.strftime('%Y-%m'),
-                    'Typ'
-                ])['Částka'].sum().unstack(fill_value=0).reset_index()
-                
-                if not monthly_summary.empty:
-                    fig_bar = px.bar(
-                        monthly_summary,
-                        x='Datum',
-                        y=['příjem', 'výdaj'] if 'příjem' in monthly_summary.columns and 'výdaj' in monthly_summary.columns else [],
-                        title='Měsíční přehled příjmů a výdajů',
-                        barmode='group'
-                    )
-                    st.plotly_chart(fig_bar, use_container_width=True)
-                else:
-                    st.info("Zatím nejsou k dispozici žádná data pro zobrazení grafu.")
-            else:
-                st.info("Zatím nejsou k dispozici žádná data pro zobrazení grafu.")
-    
-    # 4. Detailní přehled podle kategorií
-    st.subheader("Detailní přehled")
-    
-    # Vytvoření expanderu pro každou kategorii
-    for category, info in expense_categories.items():
-        with st.expander(f"📊 {category} - {info['description']}", expanded=False):
-            if not df_overview.empty:
-                category_data = df_overview[df_overview['Kategorie'] == category]
-                
-                if not category_data.empty:
-                    # Zobrazení tabulky
-                    st.dataframe(
-                        category_data,
-                        hide_index=True,
-                        use_container_width=True
-                    )
-                    
-                    # Vytvoření koláčového grafu pro kategorii
-                    fig = px.pie(
-                        category_data,
-                        values='Částka',
-                        names='Podkategorie',
-                        title=f'Rozložení výdajů v kategorii {category}',
-                        hole=0.3
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
-                else:
-                    st.info(f"V kategorii {category} zatím nejsou žádné záznamy.")
-            else:
-                st.info(f"V kategorii {category} zatím nejsou žádné záznamy.")
+            st.info("Pro vybrané období nejsou k dispozici žádné záznamy.")
+    else:
+        st.info("Zatím nemáte žádné záznamy. Přidejte nový výdaj pomocí formuláře výše.")
 
 def show_settings(username: str):
     """Zobrazí nastavení uživatele"""
@@ -1079,16 +724,87 @@ def show_settings(username: str):
     st.write(f"**E-mail:** {user_data['email']}")
     st.write(f"**Účet vytvořen:** {datetime.fromisoformat(user_data['created_at']).strftime('%d.%m.%Y %H:%M')}")
 
-# Hlavní logika aplikace
-if "logged_in" not in st.session_state:
-    st.session_state["logged_in"] = False
+def main():
+    """Hlavní funkce aplikace"""
+    # Inicializace session state
+    if "current_page" not in st.session_state:
+        st.session_state.current_page = "Přehled investic"
+    if "username" not in st.session_state:
+        st.session_state.username = None
+    if "logged_in" not in st.session_state:
+        st.session_state.logged_in = False
+    
+    # Kontrola přihlášení
+    username_cookie = get_session_cookie()
+    if username_cookie:
+        st.session_state.username = username_cookie
+        st.session_state.logged_in = True
+    
+    # Přihlašovací obrazovka
+    if not st.session_state.logged_in:
+        username = show_login()
+        if username:
+            st.session_state.username = username
+            st.session_state.logged_in = True
+        return
+    
+    # Hlavní menu
+    with st.sidebar:
+        st.title("Finanční aplikace")
+        st.markdown("---")
+        
+        # Navigační menu
+        st.subheader("Menu")
+        
+        # Definice ikon pro menu položky
+        menu_items = [
+            ("📊 Přehled investic", "Přehled investic"),
+            ("💰 Sledování výdajů", "Sledování výdajů"),
+            ("🏠 Hypoteční kalkulačka", "Hypoteční kalkulačka"),
+            ("📈 Složené úročení", "Složené úročení"),
+            ("💵 Výpočet čisté mzdy", "Výpočet čisté mzdy"),
+            ("👴 Plánování důchodu", "Plánování důchodu"),
+            ("⚙️ Správa uživatele", "Správa uživatele")
+        ]
+        
+        # Zobrazení menu položek s ikonami
+        for icon_text, page_name in menu_items:
+            if st.button(icon_text, use_container_width=True):
+                st.session_state.current_page = page_name
+                st.rerun()
+        
+        st.markdown("---")
+        if st.button("🚪 Odhlásit se", use_container_width=True):
+            clear_session_cookie()
+            st.session_state.username = None
+            st.session_state.logged_in = False
+            st.rerun()
+        
+        st.markdown("---")
+        st.markdown("""
+        ### O aplikaci
+        Tato aplikace vám pomůže s:
+        - Sledováním výdajů a příjmů
+        - Správou investic
+        - Výpočtem hypotéky
+        - Plánováním důchodu
+        """)
+    
+    # Zobrazení aktuální stránky
+    if st.session_state.current_page == "Přehled investic":
+        show_investment_overview(st.session_state.username)
+    elif st.session_state.current_page == "Sledování výdajů":
+        show_expense_tracker(st.session_state.username)
+    elif st.session_state.current_page == "Hypoteční kalkulačka":
+        show_mortgage_calculator()
+    elif st.session_state.current_page == "Složené úročení":
+        show_compound_interest_calculator()
+    elif st.session_state.current_page == "Výpočet čisté mzdy":
+        show_salary_calculator()
+    elif st.session_state.current_page == "Plánování důchodu":
+        show_retirement_planning()
+    elif st.session_state.current_page == "Správa uživatele":
+        show_settings(st.session_state.username)
 
-if not st.session_state["logged_in"]:
-    show_login_page()
-else:
-    user_data = get_user_data(st.session_state["username"])
-    if user_data:
-        show_main_app(user_data["username"], user_data["username"])  # Použijeme username místo name
-    else:
-        st.session_state.clear()
-        st.rerun()
+if __name__ == "__main__":
+    main()

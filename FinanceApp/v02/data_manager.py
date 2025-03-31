@@ -214,3 +214,69 @@ def clear_history(username: str) -> bool:
     except Exception as e:
         print(f"Chyba při mazání historie: {e}")
         return False
+
+class DataManager:
+    def __init__(self):
+        """Inicializace DataManager."""
+        self.data_dir = DATA_DIR
+        self.user_data_dir = USER_DATA_DIR
+
+    def get_user_investments_file(self, username):
+        """Vrátí cestu k souboru s investicemi uživatele."""
+        return os.path.join(self.user_data_dir, f"{username}_investments.json")
+
+    def get_user_expenses_file(self, username):
+        """Vrátí cestu k souboru s výdaji uživatele."""
+        return os.path.join(self.user_data_dir, f"{username}_expenses.json")
+
+    def load_investments(self, username):
+        """Načte investice pro konkrétního uživatele."""
+        investments_file = self.get_user_investments_file(username)
+        try:
+            if os.path.exists(investments_file):
+                with open(investments_file, 'r', encoding='utf-8') as f:
+                    try:
+                        return json.load(f)
+                    except json.JSONDecodeError:
+                        print(f"Poškozený soubor s investicemi pro uživatele {username}")
+                        # Vytvoříme záložní kopii poškozeného souboru
+                        backup_file = investments_file + '.backup'
+                        if os.path.exists(investments_file):
+                            os.rename(investments_file, backup_file)
+                        return []
+            return []
+        except Exception as e:
+            print(f"Chyba při načítání investic: {str(e)}")
+            return []
+
+    def load_expenses(self, username):
+        """Načte výdaje pro konkrétního uživatele."""
+        expenses_file = self.get_user_expenses_file(username)
+        try:
+            if os.path.exists(expenses_file):
+                with open(expenses_file, 'r', encoding='utf-8') as f:
+                    try:
+                        return json.load(f)
+                    except json.JSONDecodeError:
+                        print(f"Poškozený soubor s výdaji pro uživatele {username}")
+                        # Vytvoříme záložní kopii poškozeného souboru
+                        backup_file = expenses_file + '.backup'
+                        if os.path.exists(expenses_file):
+                            os.rename(expenses_file, backup_file)
+                        return []
+            return []
+        except Exception as e:
+            print(f"Chyba při načítání výdajů: {str(e)}")
+            return []
+
+    def save_investments(self, username, investments):
+        """Uloží investice pro konkrétního uživatele."""
+        investments_file = self.get_user_investments_file(username)
+        with open(investments_file, 'w', encoding='utf-8') as f:
+            json.dump(investments, f, ensure_ascii=False, indent=2)
+
+    def save_expenses(self, username, expenses):
+        """Uloží výdaje pro konkrétního uživatele."""
+        expenses_file = self.get_user_expenses_file(username)
+        with open(expenses_file, 'w', encoding='utf-8') as f:
+            json.dump(expenses, f, ensure_ascii=False, indent=2)

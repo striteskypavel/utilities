@@ -37,24 +37,13 @@ def show_retirement_planning():
     st.title("Plánování důchodu")
     
     # Vstupní parametry
+    st.subheader("Základní parametry")
     col1, col2 = st.columns(2)
-    
     with col1:
-        initial_investment = st.number_input(
-            "Počáteční investice (Kč)",
-            min_value=0,
-            value=100000,
-            step=10000,
-            format="%d"
-        )
-        
-        monthly_contribution = st.number_input(
-            "Měsíční příspěvek (Kč)",
-            min_value=0,
-            value=5000,
-            step=1000,
-            format="%d"
-        )
+        current_age = st.number_input("Váš věk", min_value=18, max_value=100, value=30)
+        retirement_age = st.number_input("Věk odchodu do důchodu", min_value=current_age, max_value=100, value=65)
+        current_savings = st.number_input("Aktuální investice/úspory (Kč)", min_value=0, value=100000)
+        monthly_savings = st.number_input("Měsíční investice/úspory (Kč)", min_value=0, value=5000)
     
     with col2:
         years = st.number_input(
@@ -75,7 +64,7 @@ def show_retirement_planning():
     
     # Výpočet hodnot
     timeline, balance, contributions, interest = calculate_compound_interest(
-        initial_investment, monthly_contribution, years, annual_rate
+        current_savings, monthly_savings, years, annual_rate
     )
     
     # Zobrazení výsledků

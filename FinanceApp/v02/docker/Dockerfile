@@ -20,8 +20,9 @@ RUN pip install --no-cache-dir -r requirements.txt \
 # Kopírování zdrojových souborů
 COPY . .
 
-# Vytvoření adresáře pro data
-RUN mkdir -p data/users
+# Vytvoření adresáře pro data a nastavení oprávnění
+RUN mkdir -p data/users && \
+    chmod -R 777 data
 
 # Nastavení portu
 EXPOSE 8501
