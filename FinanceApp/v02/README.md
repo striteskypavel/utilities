@@ -1,32 +1,24 @@
 # Finance App
 
-Jednoduchá aplikace pro sledování osobních financí vytvořená pomocí Streamlit.
-
-## Funkce
-
-- Přidávání a správa finančních kategorií
-- Editace částek přímo v tabulce
-- Vizualizace dat pomocí grafů:
-  - Rozložení financí (koláčový graf)
-  - Historie změn
-  - Porovnání kategorií
-- Správa historie změn
+Aplikace pro sledování výdajů, příjmů a investic.
 
 ## Instalace
 
-1. Naklonujte repozitář:
+1. Klonování repozitáře:
 ```bash
-git clone <repository-url>
-cd FinanceApp
+git clone https://github.com/yourusername/FinanceApp.git
+cd FinanceApp/v02
 ```
 
-2. Vytvořte virtuální prostředí:
+2. Vytvoření virtuálního prostředí:
 ```bash
-python3 -m venv venv
-source venv/bin/activate  # Pro Windows: venv\Scripts\activate
+python -m venv myenv
+source myenv/bin/activate  # Pro Linux/Mac
+# nebo
+myenv\Scripts\activate  # Pro Windows
 ```
 
-3. Nainstalujte závislosti:
+3. Instalace závislostí:
 ```bash
 pip install -r requirements.txt
 ```
@@ -37,9 +29,47 @@ pip install -r requirements.txt
 streamlit run App.py
 ```
 
-Aplikace bude dostupná na:
-- Local URL: http://localhost:8501
-- Network URL: http://192.168.0.17:8501
+## Nasazení na Streamlit Cloud
+
+1. Vytvořte účet na [Streamlit Cloud](https://streamlit.io/cloud)
+2. Připojte váš GitHub účet
+3. Vyberte repozitář FinanceApp
+4. Vyberte branch `main`
+5. Vyberte hlavní soubor `v02/App.py`
+6. Klikněte na "Deploy"
+
+## Struktura projektu
+
+```
+v02/
+├── App.py                 # Hlavní aplikace
+├── data_manager.py        # Správa dat
+├── compound_interest.py   # Výpočty složeného úročení
+├── requirements.txt       # Závislosti
+├── .streamlit/           # Konfigurace Streamlit
+│   └── config.toml
+└── tests/                # Unit testy
+    ├── test_app.py
+    ├── test_expense_investment_manager.py
+    ├── test_finance_app.py
+    └── test_finance_app_extended.py
+```
+
+## Testování
+
+```bash
+python -m pytest tests/
+```
+
+## Funkce
+
+- Přidávání a správa finančních kategorií
+- Editace částek přímo v tabulce
+- Vizualizace dat pomocí grafů:
+  - Rozložení financí (koláčový graf)
+  - Historie změn
+  - Porovnání kategorií
+- Správa historie změn
 
 ## Docker
 
