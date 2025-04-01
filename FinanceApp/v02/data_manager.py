@@ -55,25 +55,28 @@ class DataManager:
 
     def validate_username(self, username, check_existence=False):
         """Validace uživatelského jména."""
-        # Kontrola délky
-        if len(username) < 3:
-            return False
-        
-        # Kontrola povolených znaků (písmena, čísla, podtržítko)
-        if not re.match(r'^[a-zA-Z0-9_]+$', username):
-            return False
-        
-        # Kontrola existence uživatele (volitelná)
-        if check_existence:
-            try:
+        try:
+            # Kontrola délky
+            if len(username) < 3:
+                print("Uživatelské jméno musí mít alespoň 3 znaky")
+                return False
+            
+            # Kontrola povolených znaků (písmena, čísla, podtržítko)
+            if not re.match(r'^[a-zA-Z0-9_]+$', username):
+                print("Uživatelské jméno může obsahovat pouze písmena, čísla a podtržítko")
+                return False
+            
+            # Kontrola existence uživatele (volitelná)
+            if check_existence:
                 user_file = self.get_user_file_path(username)
                 if os.path.exists(user_file):
+                    print("Uživatelské jméno již existuje")
                     return False
-            except Exception as e:
-                print(f"Chyba při validaci uživatelského jména: {str(e)}")
-                return False
-        
-        return True
+            
+            return True
+        except Exception as e:
+            print(f"Chyba při validaci uživatelského jména: {str(e)}")
+            return False
 
     def is_email_unique(self, email):
         """Kontrola unikátnosti emailu."""
@@ -101,13 +104,17 @@ class DataManager:
             os.makedirs(self.user_data_dir, exist_ok=True)
             
             # Validace vstupů
-            if not self.validate_username(username, check_existence=True):
-                return False
+            if not self.validate_username(username):
+                if not self.validate_username(username, check_existence=True):
+                    return False
             if not self.validate_password(password):
+                print("Neplatné heslo")
                 return False
             if not self.validate_email(email):
+                print("Neplatný email")
                 return False
             if not self.is_email_unique(email):
+                print("Email již existuje")
                 return False
             
             # Vytvoření uživatele
@@ -121,12 +128,19 @@ class DataManager:
                 "created_at": datetime.now().isoformat()
             }
             
+            # Vytvoření všech potřebných souborů
             with open(user_file, 'w', encoding='utf-8') as f:
                 json.dump(user_data, f, ensure_ascii=False, indent=2)
             
-            # Vytvoření výchozích souborů pro data
-            self.save_data(username, {})
-            self.save_history(username, [])
+            # Vytvoření výchozích souborů pro data a historii
+            data_file = self.get_user_data_file(username)
+            history_file = self.get_user_history_file(username)
+            
+            with open(data_file, 'w', encoding='utf-8') as f:
+                json.dump({}, f, ensure_ascii=False, indent=2)
+            
+            with open(history_file, 'w', encoding='utf-8') as f:
+                json.dump([], f, ensure_ascii=False, indent=2)
             
             return True
         except Exception as e:

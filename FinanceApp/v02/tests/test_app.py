@@ -4,6 +4,7 @@ import os
 from datetime import datetime
 import json
 from werkzeug.security import generate_password_hash
+import shutil
 
 # Přidání cesty k aplikaci do PYTHONPATH
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'v02')))
@@ -138,8 +139,8 @@ class TestFinanceApp(unittest.TestCase):
         self.assertFalse(self.data_manager.validate_username("user@name"))
         self.assertFalse(self.data_manager.validate_username("user name"))
         
-        # Test již existujícího jména
-        self.assertFalse(self.data_manager.validate_username(self.test_username))
+        # Test již existujícího jména (s explicitní kontrolou existence)
+        self.assertFalse(self.data_manager.validate_username(self.test_username, check_existence=True))
         
         # Test validních jmen
         self.assertTrue(self.data_manager.validate_username("new_user123"))
@@ -166,6 +167,61 @@ class TestFinanceApp(unittest.TestCase):
         
         # Test validní registrace
         self.assertTrue(self.data_manager.create_user("validuser", "ValidPass123!", "new@email.com"))
+
+    def test_concurrent_user_sessions(self):
+        """Test souběžného přihlášení více uživatelů"""
+        # Vyčištění testovacích dat
+        if os.path.exists(self.data_manager.data_dir):
+            shutil.rmtree(self.data_manager.data_dir)
+        os.makedirs(self.data_manager.data_dir)
+        os.makedirs(self.data_manager.user_data_dir)
+
+        # Vytvoření dvou testovacích uživatelů
+        self.assertTrue(self.data_manager.create_user("user1", "ValidPass123!", "user1@example.com"))
+        self.assertTrue(self.data_manager.create_user("user2", "ValidPass123!", "user2@example.com"))
+
+        # Simulace přihlášení obou uživatelů
+        session1 = {"is_logged_in": False, "username": None}
+        session2 = {"is_logged_in": False, "username": None}
+
+        # Přihlášení prvního uživatele
+        if self.data_manager.verify_user("user1", "ValidPass123!"):
+            session1["is_logged_in"] = True
+            session1["username"] = "user1"
+
+        # Přihlášení druhého uživatele
+        if self.data_manager.verify_user("user2", "ValidPass123!"):
+            session2["is_logged_in"] = True
+            session2["username"] = "user2"
+
+        # Ověření, že oba uživatelé jsou přihlášeni
+        self.assertTrue(session1["is_logged_in"])
+        self.assertTrue(session2["is_logged_in"])
+        self.assertEqual(session1["username"], "user1")
+        self.assertEqual(session2["username"], "user2")
+
+        # Ověření, že každý uživatel má přístup ke svým datům
+        user1_data = self.data_manager.load_data("user1")
+        user2_data = self.data_manager.load_data("user2")
+
+        # Ověření, že data uživatelů jsou oddělená
+        self.assertNotEqual(id(user1_data), id(user2_data))
+
+        # Test přidání dat pro každého uživatele
+        test_data1 = {"Test1": [{"amount": 1000, "timestamp": "2024-01-01", "note": "Test entry 1"}]}
+        test_data2 = {"Test2": [{"amount": 2000, "timestamp": "2024-01-01", "note": "Test entry 2"}]}
+
+        self.data_manager.save_data("user1", test_data1)
+        self.data_manager.save_data("user2", test_data2)
+
+        # Ověření, že data zůstala oddělená
+        updated_data1 = self.data_manager.load_data("user1")
+        updated_data2 = self.data_manager.load_data("user2")
+
+        self.assertIn("Test1", updated_data1)
+        self.assertIn("Test2", updated_data2)
+        self.assertNotIn("Test2", updated_data1)
+        self.assertNotIn("Test1", updated_data2)
 
 if __name__ == '__main__':
     unittest.main() 
