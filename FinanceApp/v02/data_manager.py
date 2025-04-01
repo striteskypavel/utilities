@@ -220,6 +220,36 @@ class DataManager:
         """Inicializace DataManager."""
         self.data_dir = DATA_DIR
         self.user_data_dir = USER_DATA_DIR
+        os.makedirs(self.user_data_dir, exist_ok=True)
+
+    def get_user_file_path(self, username):
+        """Vrátí cestu k souboru s daty uživatele."""
+        return os.path.join(self.user_data_dir, f"{username}.json")
+
+    def create_user(self, username, password_hash, email):
+        """Vytvoří nového uživatele."""
+        user_file = self.get_user_file_path(username)
+        if os.path.exists(user_file):
+            return False
+        
+        user_data = {
+            "username": username,
+            "password": password_hash,
+            "email": email,
+            "created_at": datetime.now().isoformat()
+        }
+        
+        with open(user_file, 'w', encoding='utf-8') as f:
+            json.dump(user_data, f, ensure_ascii=False, indent=2)
+        return True
+
+    def get_user(self, username):
+        """Získá data uživatele."""
+        user_file = self.get_user_file_path(username)
+        if os.path.exists(user_file):
+            with open(user_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        return None
 
     def get_user_investments_file(self, username):
         """Vrátí cestu k souboru s investicemi uživatele."""

@@ -26,71 +26,45 @@ import time
 from expense_tracker import show_expense_tracker
 import plotly.express as px
 import plotly.graph_objects as go
+from werkzeug.security import check_password_hash, generate_password_hash
 
 # Konfigurace stránky
 st.set_page_config(
-    page_title="Finanční aplikace",
-    page_icon="💰",
+    page_title="Finance Tracker",
+    page_icon="📊",
     layout="wide"
 )
 
 def show_login():
-    """Zobrazí přihlašovací formulář"""
-    # Vytvoření tří sloupců pro centrování formuláře
-    left_col, center_col, right_col = st.columns([1, 2, 1])
+    """Zobrazení přihlašovací obrazovky"""
+    st.title("Přihlášení")
     
-    with center_col:
-        st.title("Přihlášení")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("Přihlášení")
+        username = st.text_input("Uživatelské jméno", key="login_username")
+        password = st.text_input("Heslo", type="password", key="login_password")
         
-        # Kontrola session cookie
-        username_cookie = get_session_cookie()
-        if username_cookie:
-            st.success(f"Přihlášen jako {username_cookie}")
-            if st.button("Odhlásit se"):
-                clear_session_cookie()
+        if st.button("Přihlásit"):
+            if verify_user(username, password):
+                st.session_state.authenticated = True
+                st.session_state.username = username
                 st.rerun()
-            return username_cookie
-        
-        # Přihlašovací formulář
-        with st.form("login_form", clear_on_submit=True):
-            username = st.text_input("Uživatelské jméno")
-            password = st.text_input("Heslo", type="password")
-            submit = st.form_submit_button("Přihlásit se")
-            
-            if submit:
-                success, user_data = verify_user(username, password)
-                if success:
-                    create_session_cookie(username)
-                    st.session_state.username = username
-                    st.session_state.logged_in = True
-                    st.success("Přihlášení úspěšné!")
-                    st.rerun()
-                else:
-                    st.error("Nesprávné přihlašovací údaje")
-        
-        # Registrační formulář
-        st.markdown("---")
-        st.subheader("Registrace nového uživatele")
-        with st.form("register_form", clear_on_submit=True):
-            new_username = st.text_input("Nové uživatelské jméno")
-            new_password = st.text_input("Nové heslo", type="password")
-            confirm_password = st.text_input("Potvrzení hesla", type="password")
-            email = st.text_input("E-mail")
-            register = st.form_submit_button("Registrovat se")
-            
-            if register:
-                if new_password != confirm_password:
-                    st.error("Hesla se neshodují")
-                elif is_email_registered(email):
-                    st.error("Tento e-mail je již registrován")
-                else:
-                    if create_user(new_username, new_password, email):
-                        st.success("Registrace úspěšná! Můžete se přihlásit.")
-                        st.rerun()
-                    else:
-                        st.error("Uživatelské jméno je již obsazeno")
+            else:
+                st.error("Nesprávné přihlašovací údaje")
     
-    return None
+    with col2:
+        st.subheader("Registrace")
+        new_username = st.text_input("Uživatelské jméno", key="register_username")
+        new_password = st.text_input("Heslo", type="password", key="register_password")
+        email = st.text_input("Email", key="register_email")
+        
+        if st.button("Registrovat"):
+            if create_user(new_username, new_password, email):
+                st.success("Registrace úspěšná! Nyní se můžete přihlásit.")
+            else:
+                st.error("Uživatelské jméno již existuje nebo došlo k chybě.")
 
 def show_logout():
     """Zobrazí odhlašovací tlačítko."""
@@ -754,86 +728,73 @@ def show_settings(username: str):
     st.write(f"**E-mail:** {user_data['email']}")
     st.write(f"**Účet vytvořen:** {datetime.fromisoformat(user_data['created_at']).strftime('%d.%m.%Y %H:%M')}")
 
+def verify_user(username, password):
+    """Ověří přihlašovací údaje uživatele"""
+    try:
+        data_manager = DataManager()
+        user = data_manager.get_user(username)
+        if user and check_password_hash(user['password'], password):
+            return True
+        return False
+    except Exception as e:
+        st.error(f"Chyba při ověřování uživatele: {str(e)}")
+        return False
+
+def create_user(username, password, email):
+    """Vytvoří nového uživatele"""
+    try:
+        data_manager = DataManager()
+        if data_manager.get_user(username):
+            return False
+        
+        hashed_password = generate_password_hash(password)
+        data_manager.create_user(username, hashed_password, email)
+        return True
+    except Exception as e:
+        st.error(f"Chyba při vytváření uživatele: {str(e)}")
+        return False
+
 def main():
     """Hlavní funkce aplikace"""
+    st.set_page_config(
+        page_title="Finance Tracker",
+        page_icon="📊",
+        layout="wide"
+    )
+
     # Inicializace session state
-    if "current_page" not in st.session_state:
-        st.session_state.current_page = "Přehled investic"
-    if "username" not in st.session_state:
+    if 'authenticated' not in st.session_state:
+        st.session_state.authenticated = False
+    if 'username' not in st.session_state:
         st.session_state.username = None
-    if "logged_in" not in st.session_state:
-        st.session_state.logged_in = False
-    
-    # Kontrola přihlášení
-    username_cookie = get_session_cookie()
-    if username_cookie:
-        st.session_state.username = username_cookie
-        st.session_state.logged_in = True
-    
-    # Přihlašovací obrazovka
-    if not st.session_state.logged_in:
-        username = show_login()
-        if username:
-            st.session_state.username = username
-            st.session_state.logged_in = True
+
+    # Pokud není uživatel přihlášen, zobraz přihlašovací obrazovku
+    if not st.session_state.authenticated:
+        show_login()
         return
-    
-    # Hlavní menu
+
+    # Sidebar s menu
     with st.sidebar:
-        st.title("Finanční aplikace")
-        st.markdown("---")
+        st.title("Menu")
+        selected_page = st.radio(
+            "Vyberte stránku:",
+            ["Přehled investic", "Sledování výdajů", "Plánování důchodu", "Nastavení"]
+        )
         
-        # Navigační menu
-        st.subheader("Menu")
-        
-        # Definice ikon pro menu položky
-        menu_items = [
-            ("📊 Přehled investic", "Přehled investic"),
-            ("💰 Sledování výdajů", "Sledování výdajů"),
-            ("🏠 Hypoteční kalkulačka", "Hypoteční kalkulačka"),
-            ("📈 Složené úročení", "Složené úročení"),
-            ("💵 Výpočet čisté mzdy", "Výpočet čisté mzdy"),
-            ("👴 Plánování důchodu", "Plánování důchodu"),
-            ("⚙️ Správa uživatele", "Správa uživatele")
-        ]
-        
-        # Zobrazení menu položek s ikonami
-        for icon_text, page_name in menu_items:
-            if st.button(icon_text, use_container_width=True):
-                st.session_state.current_page = page_name
-                st.rerun()
-        
-        st.markdown("---")
-        if st.button("🚪 Odhlásit se", use_container_width=True):
-            clear_session_cookie()
+        # Tlačítko pro odhlášení
+        if st.button("Odhlásit"):
+            st.session_state.authenticated = False
             st.session_state.username = None
-            st.session_state.logged_in = False
             st.rerun()
-        
-        st.markdown("---")
-        st.markdown("""
-        ### O aplikaci
-        Tato aplikace vám pomůže s:
-        - Sledováním výdajů a příjmů
-        - Správou investic
-        - Výpočtem hypotéky
-        - Plánováním důchodu
-        """)
-    
-    # Zobrazení aktuální stránky
-    if st.session_state.current_page == "Přehled investic":
+
+    # Zobrazení vybrané stránky
+    if selected_page == "Přehled investic":
         show_investment_overview(st.session_state.username)
-    elif st.session_state.current_page == "Sledování výdajů":
+    elif selected_page == "Sledování výdajů":
         show_expense_tracker(st.session_state.username)
-    elif st.session_state.current_page == "Hypoteční kalkulačka":
-        show_mortgage_calculator()
-    elif st.session_state.current_page == "Složené úročení":
-        show_compound_interest_calculator()
-    elif st.session_state.current_page == "Výpočet čisté mzdy":
-        show_salary_calculator()
-    elif st.session_state.current_page == "Plánování důchodu":
+    elif selected_page == "Plánování důchodu":
         show_retirement_planning()
-    elif st.session_state.current_page == "Správa uživatele":
+    else:
         show_settings(st.session_state.username)
 
 if __name__ == "__main__":
