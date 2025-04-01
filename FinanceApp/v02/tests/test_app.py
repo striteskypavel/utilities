@@ -1,41 +1,67 @@
 import unittest
-import pandas as pd
+import os
+import json
 from datetime import datetime
 import sys
-import os
 
 # Přidání cesty k testovaným modulům
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from data_manager import load_data, save_data, add_entry
-from user_manager import create_user, verify_user, get_user_data
+from user_manager import create_user, verify_user, get_user_data, update_user_data
 from history_manager import log_change, load_history, clear_history
+from config import USER_DATA_DIR
 
 class TestFinanceApp(unittest.TestCase):
     def setUp(self):
-        """Nastavení před každým testem"""
+        """Příprava testovacího prostředí"""
         self.test_username = "test_user"
-        self.test_password = "Test123!"
+        self.test_password = "test_password"
         self.test_email = "test@example.com"
         
         # Vytvoření testovacího uživatele
         create_user(self.test_username, self.test_password, self.test_email)
-    
+
     def tearDown(self):
-        """Úklid po každém testu"""
-        # Smazání testovacích souborů
-        user_file = f"data/users/{self.test_username}.json"
-        if os.path.exists(user_file):
-            os.remove(user_file)
-    
+        """Vyčištění testovacího prostředí"""
+        # Smazání testovacího uživatele
+        users_file = os.path.join(USER_DATA_DIR, "users.json")
+        if os.path.exists(users_file):
+            with open(users_file, 'r', encoding='utf-8') as f:
+                users = json.load(f)
+            if self.test_username in users:
+                del users[self.test_username]
+                with open(users_file, 'w', encoding='utf-8') as f:
+                    json.dump(users, f, ensure_ascii=False, indent=2)
+
     def test_user_creation_and_verification(self):
         """Test vytvoření a ověření uživatele"""
         # Ověření přihlášení
         success, user_data = verify_user(self.test_username, self.test_password)
         self.assertTrue(success)
-        self.assertEqual(user_data["username"], self.test_username)
+        self.assertIsNotNone(user_data)
+        self.assertIn("email", user_data)
         self.assertEqual(user_data["email"], self.test_email)
-    
+
+    def test_user_data_storage(self):
+        """Test ukládání dat uživatele"""
+        # Získání dat uživatele
+        user_data = get_user_data(self.test_username)
+        self.assertIsNotNone(user_data)
+        self.assertIn("email", user_data)
+        self.assertEqual(user_data["email"], self.test_email)
+
+    def test_user_update(self):
+        """Test aktualizace dat uživatele"""
+        # Aktualizace emailu
+        new_email = "new@example.com"
+        success = update_user_data(self.test_username, {"email": new_email})
+        self.assertTrue(success)
+        
+        # Ověření změny
+        user_data = get_user_data(self.test_username)
+        self.assertEqual(user_data["email"], new_email)
+
     def test_data_management(self):
         """Test správy dat"""
         # Přidání záznamu

@@ -6,6 +6,8 @@ from datetime import datetime, timedelta
 import tempfile
 import shutil
 import bcrypt
+from user_manager import create_user, verify_user, get_user_data, update_user_data, update_user_password
+from config import USER_DATA_DIR
 
 # Vytvoření dočasného adresáře pro test
 TEST_DIR = tempfile.mkdtemp()
@@ -20,46 +22,43 @@ os.environ["USER_DATA_DIR"] = USERS_DIR
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from user_manager import create_user, verify_user, get_user_data, update_user_data
 from data_manager import load_data, save_data, add_entry, get_history
 
 class TestFinanceAppExtended(unittest.TestCase):
     def setUp(self):
-        """Nastavení před každým testem"""
+        """Příprava testovacího prostředí"""
         self.test_username = "test_user"
-        self.test_password = "Test123!"
+        self.test_password = "test_password"
         self.test_email = "test@example.com"
         
-        # Nastavení cest k testovacím datům
-        self.test_dir = TEST_DIR
-        self.users_dir = USERS_DIR
-        self.data_file = os.path.join(self.test_dir, f"{self.test_username}_data.json")
-        self.history_file = os.path.join(self.test_dir, f"{self.test_username}_history.json")
-        self.user_file = os.path.join(self.users_dir, f"{self.test_username}.json")
-        
-        # Smazání existujících souborů
-        for file in [self.data_file, self.history_file, self.user_file]:
-            if os.path.exists(file):
-                os.remove(file)
-
-    @classmethod
-    def tearDownClass(cls):
-        """Úklid po všech testech"""
-        shutil.rmtree(TEST_DIR)
-
-    def test_user_data_update(self):
-        """Test aktualizace dat uživatele"""
-        # Vytvoření uživatele
+        # Vytvoření testovacího uživatele
         create_user(self.test_username, self.test_password, self.test_email)
+
+    def tearDown(self):
+        """Vyčištění testovacího prostředí"""
+        # Smazání testovacího uživatele
+        users_file = os.path.join(USER_DATA_DIR, "users.json")
+        if os.path.exists(users_file):
+            with open(users_file, 'r', encoding='utf-8') as f:
+                users = json.load(f)
+            if self.test_username in users:
+                del users[self.test_username]
+                with open(users_file, 'w', encoding='utf-8') as f:
+                    json.dump(users, f, ensure_ascii=False, indent=2)
+
+    def test_user_registration_validation(self):
+        """Test validace registrace uživatele"""
+        # Test 1: Prázdné jméno
+        success = create_user("", self.test_password, self.test_email)
+        self.assertFalse(success)
         
-        # Aktualizace emailu
-        new_email = "new@example.com"
-        success = update_user_data(self.test_username, {"email": new_email})
-        self.assertTrue(success)
+        # Test 2: Prázdné heslo
+        success = create_user("test_user2", "", self.test_email)
+        self.assertFalse(success)
         
-        # Ověření změny
-        user_data = get_user_data(self.test_username)
-        self.assertEqual(user_data["email"], new_email)
+        # Test 3: Duplicitní email
+        success = create_user("test_user2", self.test_password, self.test_email)
+        self.assertFalse(success)
 
     def test_password_change(self):
         """Test změny hesla"""
@@ -68,13 +67,31 @@ class TestFinanceAppExtended(unittest.TestCase):
         
         # Změna hesla
         new_password = "NewTest123!"
-        hashed = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
-        success = update_user_data(self.test_username, {"password": hashed})
+        success = update_user_password(self.test_username, new_password)
         self.assertTrue(success)
         
         # Ověření nového hesla
         success, _ = verify_user(self.test_username, new_password)
         self.assertTrue(success)
+        
+        # Ověření starého hesla (nemělo by fungovat)
+        success, _ = verify_user(self.test_username, self.test_password)
+        self.assertFalse(success)
+
+    def test_user_data_update(self):
+        """Test aktualizace dat uživatele"""
+        # Aktualizace emailu
+        new_email = "new@example.com"
+        success = update_user_data(self.test_username, {"email": new_email})
+        self.assertTrue(success)
+        
+        # Ověření změny
+        user_data = get_user_data(self.test_username)
+        self.assertEqual(user_data["email"], new_email)
+        
+        # Aktualizace neexistujícího uživatele
+        success = update_user_data("nonexistent_user", {"email": new_email})
+        self.assertFalse(success)
 
     def test_data_validation(self):
         """Test validace dat"""
