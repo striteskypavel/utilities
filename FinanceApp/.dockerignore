@@ -1,0 +1,76 @@
+# flyctl launch added from myenv/.gitignore
+# Created by venv; see https://docs.python.org/3/library/venv.html
+myenv/**/*
+
+# flyctl launch added from v02/.gitignore
+# Python
+v02/**/__pycache__
+v02/**/*.py[cod]
+v02/**/*$py.class
+v02/**/*.so
+v02/**/.Python
+v02/**/build
+v02/**/develop-eggs
+v02/**/dist
+v02/**/downloads
+v02/**/eggs
+v02/**/.eggs
+v02/**/lib
+v02/**/lib64
+v02/**/parts
+v02/**/sdist
+v02/**/var
+v02/**/wheels
+v02/**/*.egg-info
+v02/**/.installed.cfg
+v02/**/*.egg
+
+# Virtual Environment
+v02/**/venv
+v02/**/ENV
+v02/**/myenv
+
+# IDE
+v02/**/.idea
+v02/**/.vscode
+v02/**/*.swp
+v02/**/*.swo
+
+# Streamlit
+v02/**/.streamlit/secrets.toml
+
+# Data files
+v02/**/data/users/*.json
+!v02/**/data/users/.gitkeep
+
+# Logs
+v02/**/*.log
+
+# OS
+v02/**/.DS_Store
+v02/**/Thumbs.db
+
+# Application specific
+v02/**/data/*.json
+!v02/**/data/example_data.json 
+
+# flyctl launch added from v02/.pytest_cache/.gitignore
+# Created by pytest automatically.
+v02/.pytest_cache/**/*
+
+# flyctl launch added from v02/docker/.pytest_cache/.gitignore
+# Created by pytest automatically.
+v02/docker/.pytest_cache/**/*
+
+# flyctl launch added from v02/tests/.pytest_cache/.gitignore
+# Created by pytest automatically.
+v02/tests/.pytest_cache/**/*
+
+# flyctl launch added from v02/v02/.pytest_cache/.gitignore
+# Created by pytest automatically.
+v02/v02/.pytest_cache/**/*
+
+# flyctl launch added from v02/venv/.gitignore
+# Created by venv; see https://docs.python.org/3/library/venv.html
+v02/venv/**/*
+fly.toml
