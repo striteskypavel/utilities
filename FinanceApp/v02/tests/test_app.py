@@ -1,101 +1,105 @@
 import unittest
-import os
-import json
-from datetime import datetime
 import sys
+import os
+from datetime import datetime
+import json
+from werkzeug.security import generate_password_hash
 
-# Přidání cesty k testovaným modulům
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Přidání cesty k aplikaci do PYTHONPATH
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'v02')))
 
-from data_manager import load_data, save_data, add_entry
-from user_manager import create_user, verify_user, get_user_data, update_user_data
-from history_manager import log_change, load_history, clear_history
-from config import USER_DATA_DIR
+from data_manager import DataManager
 
 class TestFinanceApp(unittest.TestCase):
     def setUp(self):
-        """Příprava testovacího prostředí"""
+        """Nastavení před každým testem"""
         self.test_username = "test_user"
-        self.test_password = "test_password"
+        self.test_password = "Test123!"
         self.test_email = "test@example.com"
+        self.data_manager = DataManager()
         
         # Vytvoření testovacího uživatele
-        create_user(self.test_username, self.test_password, self.test_email)
+        self.data_manager.create_user(
+            self.test_username,
+            self.test_password,  # Heslo v plaintextu, DataManager ho zahashuje
+            self.test_email
+        )
 
     def tearDown(self):
-        """Vyčištění testovacího prostředí"""
-        # Smazání testovacího uživatele
-        users_file = os.path.join(USER_DATA_DIR, "users.json")
-        if os.path.exists(users_file):
-            with open(users_file, 'r', encoding='utf-8') as f:
-                users = json.load(f)
-            if self.test_username in users:
-                del users[self.test_username]
-                with open(users_file, 'w', encoding='utf-8') as f:
-                    json.dump(users, f, ensure_ascii=False, indent=2)
-
-    def test_user_creation_and_verification(self):
-        """Test vytvoření a ověření uživatele"""
-        # Ověření přihlášení
-        success, user_data = verify_user(self.test_username, self.test_password)
-        self.assertTrue(success)
-        self.assertIsNotNone(user_data)
-        self.assertIn("email", user_data)
-        self.assertEqual(user_data["email"], self.test_email)
-
-    def test_user_data_storage(self):
-        """Test ukládání dat uživatele"""
-        # Získání dat uživatele
-        user_data = get_user_data(self.test_username)
-        self.assertIsNotNone(user_data)
-        self.assertIn("email", user_data)
-        self.assertEqual(user_data["email"], self.test_email)
-
-    def test_user_update(self):
-        """Test aktualizace dat uživatele"""
-        # Aktualizace emailu
-        new_email = "new@example.com"
-        success = update_user_data(self.test_username, {"email": new_email})
-        self.assertTrue(success)
+        """Úklid po každém testu"""
+        # Smazání testovacích dat
+        user_file = self.data_manager.get_user_file_path(self.test_username)
+        if os.path.exists(user_file):
+            os.remove(user_file)
         
-        # Ověření změny
-        user_data = get_user_data(self.test_username)
-        self.assertEqual(user_data["email"], new_email)
+        investments_file = os.path.join('data', f'{self.test_username}_investments.json')
+        if os.path.exists(investments_file):
+            os.remove(investments_file)
+        
+        expenses_file = os.path.join('data', f'{self.test_username}_expenses.json')
+        if os.path.exists(expenses_file):
+            os.remove(expenses_file)
 
-    def test_data_management(self):
-        """Test správy dat"""
-        # Přidání záznamu
-        entry_data = {
-            "type": "Výdaj",
-            "amount": 1000,
-            "timestamp": datetime.now().isoformat()
+    def test_user_creation(self):
+        """Test vytvoření uživatele"""
+        # Test existence uživatele
+        user = self.data_manager.get_user(self.test_username)
+        self.assertIsNotNone(user)
+        self.assertEqual(user['username'], self.test_username)
+        self.assertEqual(user['email'], self.test_email)
+
+    def test_investment_operations(self):
+        """Test operací s investicemi"""
+        # Přidání testovací investice
+        test_investment = {
+            "amount": 10000,
+            "type": "ETF a akcie",
+            "name": "Test ETF",
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "note": "Testovací investice"
         }
-        add_entry(self.test_username, "Test Category", entry_data)
         
-        # Načtení dat
-        data = load_data(self.test_username)
-        self.assertIn("Test Category", data)
+        # Test ukládání investic
+        investments = [test_investment]
+        self.data_manager.save_investments(self.test_username, investments)
         
-        # Kontrola, zda je kategorie seznam nebo jednotlivý záznam
-        category_data = data["Test Category"]
-        if isinstance(category_data, list):
-            self.assertEqual(category_data[0]["amount"], 1000)
-        else:
-            self.assertEqual(category_data["amount"], 1000)
-    
-    def test_history_management(self):
-        """Test správy historie"""
-        # Přidání záznamu do historie
-        log_change("Test Category", 0, 1000)
+        # Test načítání investic
+        loaded_investments = self.data_manager.load_investments(self.test_username)
+        self.assertEqual(len(loaded_investments), 1)
+        self.assertEqual(loaded_investments[0]['amount'], test_investment['amount'])
+        self.assertEqual(loaded_investments[0]['type'], test_investment['type'])
+
+    def test_expense_operations(self):
+        """Test operací s výdaji"""
+        # Přidání testovacího výdaje
+        test_expense = {
+            "amount": 1000,
+            "category": "Potraviny",
+            "type": "Výdaj",
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "note": "Testovací výdaj"
+        }
         
-        # Načtení historie
-        history = load_history()
-        self.assertGreater(len(history), 0)
+        # Test ukládání výdajů
+        expenses = [test_expense]
+        self.data_manager.save_expenses(self.test_username, expenses)
         
-        # Vymazání historie
-        clear_history()
-        history = load_history()
-        self.assertEqual(len(history), 0)
+        # Test načítání výdajů
+        loaded_expenses = self.data_manager.load_expenses(self.test_username)
+        self.assertEqual(len(loaded_expenses), 1)
+        self.assertEqual(loaded_expenses[0]['amount'], test_expense['amount'])
+        self.assertEqual(loaded_expenses[0]['category'], test_expense['category'])
+
+    def test_user_authentication(self):
+        """Test autentizace uživatele"""
+        # Test správných přihlašovacích údajů
+        self.assertTrue(self.data_manager.verify_user(self.test_username, self.test_password))
+        
+        # Test nesprávného hesla
+        self.assertFalse(self.data_manager.verify_user(self.test_username, "wrong_password"))
+        
+        # Test neexistujícího uživatele
+        self.assertFalse(self.data_manager.verify_user("nonexistent_user", "any_password"))
 
 if __name__ == '__main__':
     unittest.main() 

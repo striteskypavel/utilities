@@ -2,10 +2,7 @@ import streamlit as st
 import pandas as pd
 import json
 from datetime import datetime
-from data_manager import (
-    load_data, save_data, add_entry,
-    export_data, import_data, get_history, DataManager
-)
+from data_manager import DataManager
 from visualizations import (
     show_pie_chart, show_history_chart, 
     show_category_comparison
@@ -35,44 +32,57 @@ st.set_page_config(
     layout="wide"
 )
 
-def show_login():
-    """Zobrazení přihlašovací obrazovky"""
+# Inicializace DataManager
+data_manager = DataManager()
+
+# Inicializace session state
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+if 'username' not in st.session_state:
+    st.session_state.username = None
+if 'session_id' not in st.session_state:
+    st.session_state.session_id = str(time.time())
+
+def login_page():
     st.title("Přihlášení")
     
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("Přihlášení")
-        username = st.text_input("Uživatelské jméno", key="login_username")
-        password = st.text_input("Heslo", type="password", key="login_password")
+    with st.form("login_form"):
+        username = st.text_input("Uživatelské jméno")
+        password = st.text_input("Heslo", type="password")
+        submit = st.form_submit_button("Přihlásit se")
         
-        if st.button("Přihlásit"):
-            if verify_user(username, password):
-                st.session_state.authenticated = True
+        if submit:
+            if data_manager.verify_user(username, password):
+                st.session_state.logged_in = True
                 st.session_state.username = username
+                st.success("Přihlášení úspěšné!")
                 st.rerun()
             else:
-                st.error("Nesprávné přihlašovací údaje")
+                st.error("Nesprávné přihlašovací údaje!")
+
+def register_page():
+    st.title("Registrace")
     
-    with col2:
-        st.subheader("Registrace")
-        new_username = st.text_input("Uživatelské jméno", key="register_username")
-        new_password = st.text_input("Heslo", type="password", key="register_password")
-        email = st.text_input("Email", key="register_email")
+    with st.form("register_form"):
+        username = st.text_input("Uživatelské jméno")
+        password = st.text_input("Heslo", type="password")
+        email = st.text_input("Email")
+        submit = st.form_submit_button("Registrovat se")
         
-        if st.button("Registrovat"):
-            if create_user(new_username, new_password, email):
-                st.success("Registrace úspěšná! Nyní se můžete přihlásit.")
+        if submit:
+            if data_manager.create_user(username, password, email):
+                st.success("Registrace úspěšná! Můžete se přihlásit.")
+                st.rerun()
             else:
-                st.error("Uživatelské jméno již existuje nebo došlo k chybě.")
+                st.error("Uživatelské jméno již existuje!")
 
 def show_logout():
     """Zobrazí odhlašovací tlačítko."""
     if st.sidebar.button("Odhlásit se"):
-        # Vyčištění session state a cookie
+        # Vyčištění session state
         st.session_state.pop("username", None)
         st.session_state.pop("logged_in", None)
-        clear_session_cookie()
+        st.session_state.pop("session_id", None)
         st.rerun()
 
 def show_main_app(username, name):
@@ -86,8 +96,8 @@ def show_main_app(username, name):
     st.sidebar.title(f'Vítejte, {name}')
     
     # Načtení dat pro přihlášeného uživatele
-    data = load_data(username)
-    history = get_history(username)
+    data = data_manager.load_data(username)
+    history = data_manager.get_history(username)
 
     # Nastavení sidebaru
     st.sidebar.title("Nástroje")
@@ -223,7 +233,7 @@ def show_export_import_module(username: str, data: dict, module_type: str):
                 with open(temp_file, "wb") as f:
                     f.write(uploaded_file.getvalue())
                 
-                if import_data(username, temp_file, format=file_extension):
+                if data_manager.import_data(username, temp_file, format=file_extension):
                     success_message.success(f"Data {module_type} byla úspěšně importována!")
                     time.sleep(3)
                     success_message.empty()
@@ -239,7 +249,6 @@ def show_investment_overview(username):
     st.title("Přehled investic")
     
     # Načtení existujících investic
-    data_manager = DataManager()
     investments = data_manager.load_investments(username)
     
     # Formulář pro přidání nové investice
@@ -451,7 +460,6 @@ def show_expense_tracker(username):
     st.title("Sledování výdajů")
     
     # Načtení existujících výdajů
-    data_manager = DataManager()
     expenses = data_manager.load_expenses(username)
     
     # Formulář pro přidání nového výdaje
@@ -682,120 +690,60 @@ def show_settings(username: str):
     st.title("Nastavení")
     
     # Načtení dat uživatele
-    user_data = get_user_data(username)
+    user_data = data_manager.get_user_data(username)
+    if not user_data:
+        st.error("Nepodařilo se načíst data uživatele")
+        return
     
-    # Formulář pro změnu hesla
-    st.subheader("Změna hesla")
-    with st.form("password_change"):
-        old_password = st.text_input("Staré heslo", type="password")
-        new_password = st.text_input("Nové heslo", type="password")
-        confirm_password = st.text_input("Potvrzení nového hesla", type="password")
-        submit = st.form_submit_button("Změnit heslo", use_container_width=True)
-        
-        if submit:
-            if not old_password or not new_password or not confirm_password:
-                st.error("Vyplňte všechna pole")
-            elif new_password != confirm_password:
-                st.error("Nové heslo a potvrzení se neshodují")
-            else:
-                # Validace síly hesla
-                password_errors = []
-                if len(new_password) < 8:
-                    password_errors.append("Heslo musí mít alespoň 8 znaků")
-                if not any(c.isupper() for c in new_password):
-                    password_errors.append("Heslo musí obsahovat alespoň jedno velké písmeno")
-                if not any(c.islower() for c in new_password):
-                    password_errors.append("Heslo musí obsahovat alespoň jedno malé písmeno")
-                if not any(c.isdigit() for c in new_password):
-                    password_errors.append("Heslo musí obsahovat alespoň jednu číslici")
-                if not any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?" for c in new_password):
-                    password_errors.append("Heslo musí obsahovat alespoň jeden speciální znak")
-                
-                if password_errors:
-                    st.error("Nové heslo nesplňuje požadavky na bezpečnost:")
-                    for error in password_errors:
-                        st.error(error)
-                else:
-                    success, message = update_user_password(username, old_password, new_password)
-                    if success:
-                        st.success(message)
-                    else:
-                        st.error(message)
-    
-    # Informace o účtu
+    # Zobrazení základních informací
     st.subheader("Informace o účtu")
-    st.write(f"**Uživatelské jméno:** {user_data['username']}")
+    st.write(f"**Uživatelské jméno:** {username}")
     st.write(f"**E-mail:** {user_data['email']}")
     st.write(f"**Účet vytvořen:** {datetime.fromisoformat(user_data['created_at']).strftime('%d.%m.%Y %H:%M')}")
-
-def verify_user(username, password):
-    """Ověří přihlašovací údaje uživatele"""
-    try:
-        data_manager = DataManager()
-        user = data_manager.get_user(username)
-        if user and check_password_hash(user['password'], password):
-            return True
-        return False
-    except Exception as e:
-        st.error(f"Chyba při ověřování uživatele: {str(e)}")
-        return False
-
-def create_user(username, password, email):
-    """Vytvoří nového uživatele"""
-    try:
-        data_manager = DataManager()
-        if data_manager.get_user(username):
-            return False
+    
+    # Změna hesla
+    st.subheader("Změna hesla")
+    with st.form("change_password"):
+        current_password = st.text_input("Současné heslo", type="password")
+        new_password = st.text_input("Nové heslo", type="password")
+        confirm_password = st.text_input("Potvrzení nového hesla", type="password")
         
-        hashed_password = generate_password_hash(password)
-        data_manager.create_user(username, hashed_password, email)
-        return True
-    except Exception as e:
-        st.error(f"Chyba při vytváření uživatele: {str(e)}")
-        return False
+        if st.form_submit_button("Změnit heslo"):
+            if not data_manager.verify_user(username, current_password):
+                st.error("Nesprávné současné heslo")
+            elif new_password != confirm_password:
+                st.error("Nové heslo a jeho potvrzení se neshodují")
+            elif len(new_password) < 8:
+                st.error("Nové heslo musí mít alespoň 8 znaků")
+            else:
+                if data_manager.update_user_password(username, new_password):
+                    st.success("Heslo bylo úspěšně změněno")
+                else:
+                    st.error("Nepodařilo se změnit heslo")
 
 def main():
     """Hlavní funkce aplikace"""
-    st.set_page_config(
-        page_title="Finance Tracker",
-        page_icon="📊",
-        layout="wide"
-    )
-
-    # Inicializace session state
-    if 'authenticated' not in st.session_state:
-        st.session_state.authenticated = False
-    if 'username' not in st.session_state:
-        st.session_state.username = None
-
-    # Pokud není uživatel přihlášen, zobraz přihlašovací obrazovku
-    if not st.session_state.authenticated:
-        show_login()
-        return
-
-    # Sidebar s menu
-    with st.sidebar:
-        st.title("Menu")
-        selected_page = st.radio(
-            "Vyberte stránku:",
-            ["Přehled investic", "Sledování výdajů", "Plánování důchodu", "Nastavení"]
-        )
+    st.title("Finance App")
+    
+    if not st.session_state.logged_in:
+        tab1, tab2 = st.tabs(["Přihlášení", "Registrace"])
         
-        # Tlačítko pro odhlášení
-        if st.button("Odhlásit"):
-            st.session_state.authenticated = False
-            st.session_state.username = None
-            st.rerun()
-
-    # Zobrazení vybrané stránky
-    if selected_page == "Přehled investic":
-        show_investment_overview(st.session_state.username)
-    elif selected_page == "Sledování výdajů":
-        show_expense_tracker(st.session_state.username)
-    elif selected_page == "Plánování důchodu":
-        show_retirement_planning()
+        with tab1:
+            login_page()
+            
+        with tab2:
+            register_page()
     else:
-        show_settings(st.session_state.username)
+        # Získání dat uživatele
+        user_data = data_manager.get_user(st.session_state.username)
+        if user_data:
+            show_main_app(st.session_state.username, user_data.get('username', st.session_state.username))
+        else:
+            st.error("Nepodařilo se načíst data uživatele")
+            if st.button("Odhlásit se"):
+                st.session_state.logged_in = False
+                st.session_state.username = None
+                st.rerun()
 
 if __name__ == "__main__":
     main()

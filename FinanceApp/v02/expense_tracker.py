@@ -2,7 +2,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import plotly.express as px
 import plotly.graph_objects as go
-from data_manager import load_data, save_data, add_entry
+from data_manager import DataManager
 
 def show_expense_tracker(username: str):
     """Zobrazí modul pro sledování výdajů a příjmů"""
@@ -10,8 +10,11 @@ def show_expense_tracker(username: str):
     
     st.title("Sledování výdajů a příjmů")
     
+    # Inicializace DataManager
+    data_manager = DataManager()
+    
     # Načtení dat
-    data = load_data(username)
+    data = data_manager.load_data(username)
     
     # Vytvoření dvou sloupců pro přehled
     col1, col2 = st.columns(2)
@@ -34,7 +37,7 @@ def show_expense_tracker(username: str):
                         "timestamp": datetime.now().isoformat(),
                         "note": note
                     }
-                    add_entry(username, category, entry_data)
+                    data_manager.add_entry(username, category, entry_data)
                     st.success("Záznam byl přidán!")
                     st.rerun()
                 else:

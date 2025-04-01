@@ -4,7 +4,6 @@ import os
 from datetime import datetime
 import tempfile
 import pandas as pd
-from werkzeug.security import check_password_hash, generate_password_hash
 
 # Cesta k datovým souborům
 DATA_DIR = os.getenv("DATA_DIR", "data")
@@ -33,14 +32,11 @@ class DataManager:
         """Vrátí cestu k souboru s daty uživatele."""
         return os.path.join(self.user_data_dir, f"{username}.json")
 
-    def create_user(self, username, password, email):
+    def create_user(self, username, password_hash, email):
         """Vytvoří nového uživatele."""
         user_file = self.get_user_file_path(username)
         if os.path.exists(user_file):
             return False
-        
-        # Hash the password using werkzeug's generate_password_hash with specific method
-        password_hash = generate_password_hash(password, method='pbkdf2:sha256:600000')
         
         user_data = {
             "username": username,
@@ -308,23 +304,3 @@ class DataManager:
         expenses_file = self.get_user_expenses_file(username)
         with open(expenses_file, 'w', encoding='utf-8') as f:
             json.dump(expenses, f, ensure_ascii=False, indent=2)
-
-    def verify_user(self, username, password):
-        """Ověří přihlašovací údaje uživatele."""
-        user = self.get_user(username)
-        if not user or 'password' not in user:
-            return False
-        try:
-            return check_password_hash(user['password'], password)
-        except ValueError:
-            # If the hash method is invalid, try to rehash the password
-            try:
-                # Generate a new hash with the correct method
-                new_hash = generate_password_hash(password, method='pbkdf2:sha256:600000')
-                # Update the user's password hash
-                user['password'] = new_hash
-                with open(self.get_user_file_path(username), 'w', encoding='utf-8') as f:
-                    json.dump(user, f, ensure_ascii=False, indent=2)
-                return True
-            except:
-                return False
