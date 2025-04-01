@@ -24,11 +24,13 @@ COPY . .
 RUN mkdir -p data/users
 
 # Nastavení portu pro Streamlit
-EXPOSE 8501
+EXPOSE 8080
 
 # Nastavení proměnných prostředí pro Streamlit
 ENV STREAMLIT_SERVER_ADDRESS=0.0.0.0
-ENV STREAMLIT_SERVER_PORT=8501
+ENV STREAMLIT_SERVER_PORT=8080
+ENV STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
+ENV STREAMLIT_SERVER_MAX_UPLOAD_SIZE=200
 
 # Spuštění aplikace
 CMD ["streamlit", "run", "App.py"] 
