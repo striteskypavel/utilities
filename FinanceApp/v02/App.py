@@ -46,35 +46,35 @@ if 'session_id' not in st.session_state:
 def login_page():
     st.title("Přihlášení")
     
-    with st.form("login_form"):
-        username = st.text_input("Uživatelské jméno")
-        password = st.text_input("Heslo", type="password")
-        submit = st.form_submit_button("Přihlásit se")
-        
-        if submit:
-            if data_manager.verify_user(username, password):
-                st.session_state.logged_in = True
-                st.session_state.username = username
-                st.success("Přihlášení úspěšné!")
-                st.rerun()
-            else:
-                st.error("Nesprávné přihlašovací údaje!")
+    username = st.text_input("Uživatelské jméno", key="login_username")
+    password = st.text_input("Heslo", type="password", key="login_password")
+    
+    if st.button("Přihlásit se"):
+        if data_manager.verify_user(username, password):
+            st.session_state.logged_in = True
+            st.session_state.username = username
+            st.success("Přihlášení úspěšné!")
+            st.rerun()
+        else:
+            st.error("Nesprávné přihlašovací údaje!")
 
 def register_page():
-    st.title("Registrace")
+    st.title("Registrace nového uživatele")
     
-    with st.form("register_form"):
-        username = st.text_input("Uživatelské jméno")
-        password = st.text_input("Heslo", type="password")
-        email = st.text_input("Email")
-        submit = st.form_submit_button("Registrovat se")
-        
-        if submit:
-            if data_manager.create_user(username, password, email):
-                st.success("Registrace úspěšná! Můžete se přihlásit.")
-                st.rerun()
-            else:
-                st.error("Uživatelské jméno již existuje!")
+    username = st.text_input("Nové uživatelské jméno", key="register_username")
+    password = st.text_input("Nové heslo", type="password", key="register_password")
+    password_confirm = st.text_input("Potvrzení hesla", type="password", key="register_password_confirm")
+    email = st.text_input("E-mail", key="register_email")
+    
+    if st.button("Registrovat se"):
+        if password != password_confirm:
+            st.error("Hesla se neshodují!")
+            return
+        if data_manager.create_user(username, password, email):
+            st.success("Registrace úspěšná! Můžete se přihlásit.")
+            st.rerun()
+        else:
+            st.error("Uživatelské jméno již existuje!")
 
 def show_logout():
     """Zobrazí odhlašovací tlačítko."""

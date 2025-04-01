@@ -5,6 +5,7 @@ from datetime import datetime
 import tempfile
 import pandas as pd
 from werkzeug.security import check_password_hash, generate_password_hash
+import re
 
 # Cesta k datovým souborům
 DATA_DIR = os.getenv("DATA_DIR", "data")
@@ -33,25 +34,104 @@ class DataManager:
         """Vrátí cestu k souboru s daty uživatele."""
         return os.path.join(self.user_data_dir, f"{username}.json")
 
-    def create_user(self, username, password, email):
-        """Vytvoří nového uživatele."""
-        user_file = self.get_user_file_path(username)
-        if os.path.exists(user_file):
+    def validate_password(self, password):
+        """Validace hesla."""
+        if len(password) < 8:
+            return False
+        if not re.search(r"[A-Z]", password):  # Velké písmeno
+            return False
+        if not re.search(r"[a-z]", password):  # Malé písmeno
+            return False
+        if not re.search(r"\d", password):     # Číslo
+            return False
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):  # Speciální znak
+            return False
+        return True
+
+    def validate_email(self, email):
+        """Validace emailu."""
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        return bool(re.match(email_pattern, email))
+
+    def validate_username(self, username, check_existence=False):
+        """Validace uživatelského jména."""
+        # Kontrola délky
+        if len(username) < 3:
             return False
         
-        # Hash the password using werkzeug's generate_password_hash with specific method
-        password_hash = generate_password_hash(password, method='pbkdf2:sha256:600000')
+        # Kontrola povolených znaků (písmena, čísla, podtržítko)
+        if not re.match(r'^[a-zA-Z0-9_]+$', username):
+            return False
         
-        user_data = {
-            "username": username,
-            "password": password_hash,
-            "email": email,
-            "created_at": datetime.now().isoformat()
-        }
+        # Kontrola existence uživatele (volitelná)
+        if check_existence:
+            try:
+                user_file = self.get_user_file_path(username)
+                if os.path.exists(user_file):
+                    return False
+            except Exception as e:
+                print(f"Chyba při validaci uživatelského jména: {str(e)}")
+                return False
         
-        with open(user_file, 'w', encoding='utf-8') as f:
-            json.dump(user_data, f, ensure_ascii=False, indent=2)
         return True
+
+    def is_email_unique(self, email):
+        """Kontrola unikátnosti emailu."""
+        try:
+            for filename in os.listdir(self.user_data_dir):
+                if filename.endswith('.json'):
+                    try:
+                        with open(os.path.join(self.user_data_dir, filename), 'r') as f:
+                            user_data = json.load(f)
+                            if isinstance(user_data, dict) and user_data.get('email') == email:
+                                return False
+                    except (json.JSONDecodeError, IOError, Exception) as e:
+                        print(f"Chyba při čtení souboru {filename}: {str(e)}")
+                        continue
+            return True
+        except Exception as e:
+            print(f"Chyba při kontrole unikátnosti emailu: {str(e)}")
+            return False  # Pokud nelze ověřit, předpokládáme, že email není unikátní
+
+    def create_user(self, username, password, email):
+        """Vytvoří nového uživatele s validací."""
+        try:
+            # Vytvoření adresářů
+            os.makedirs(self.data_dir, exist_ok=True)
+            os.makedirs(self.user_data_dir, exist_ok=True)
+            
+            # Validace vstupů
+            if not self.validate_username(username, check_existence=True):
+                return False
+            if not self.validate_password(password):
+                return False
+            if not self.validate_email(email):
+                return False
+            if not self.is_email_unique(email):
+                return False
+            
+            # Vytvoření uživatele
+            user_file = self.get_user_file_path(username)
+            password_hash = generate_password_hash(password, method='pbkdf2:sha256:600000')
+            
+            user_data = {
+                "username": username,
+                "password": password_hash,
+                "email": email,
+                "created_at": datetime.now().isoformat()
+            }
+            
+            with open(user_file, 'w', encoding='utf-8') as f:
+                json.dump(user_data, f, ensure_ascii=False, indent=2)
+            
+            # Vytvoření výchozích souborů pro data
+            self.save_data(username, {})
+            self.save_history(username, [])
+            
+            return True
+        except Exception as e:
+            print(f"Chyba při vytváření uživatele: {str(e)}")
+            return False
 
     def get_user(self, username):
         """Získá data uživatele."""

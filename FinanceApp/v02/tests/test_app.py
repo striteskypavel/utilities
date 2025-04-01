@@ -21,7 +21,7 @@ class TestFinanceApp(unittest.TestCase):
         # Vytvoření testovacího uživatele
         self.data_manager.create_user(
             self.test_username,
-            self.test_password,  # Heslo v plaintextu, DataManager ho zahashuje
+            self.test_password,  # Předáváme heslo v plaintextu
             self.test_email
         )
 
@@ -100,6 +100,72 @@ class TestFinanceApp(unittest.TestCase):
         
         # Test neexistujícího uživatele
         self.assertFalse(self.data_manager.verify_user("nonexistent_user", "any_password"))
+
+    def test_password_validation(self):
+        """Test validace hesla"""
+        # Test příliš krátkého hesla
+        self.assertFalse(self.data_manager.validate_password("short"))
+        
+        # Test hesla bez čísla
+        self.assertFalse(self.data_manager.validate_password("NoNumber!"))
+        
+        # Test hesla bez velkého písmena
+        self.assertFalse(self.data_manager.validate_password("nouppercase123!"))
+        
+        # Test hesla bez speciálního znaku
+        self.assertFalse(self.data_manager.validate_password("NoSpecial123"))
+        
+        # Test validního hesla
+        self.assertTrue(self.data_manager.validate_password("ValidPass123!"))
+
+    def test_email_validation(self):
+        """Test validace emailu"""
+        # Test nevalidních emailů
+        self.assertFalse(self.data_manager.validate_email("notanemail"))
+        self.assertFalse(self.data_manager.validate_email("still@not"))
+        self.assertFalse(self.data_manager.validate_email("@invalid.com"))
+        
+        # Test validních emailů
+        self.assertTrue(self.data_manager.validate_email("valid@email.com"))
+        self.assertTrue(self.data_manager.validate_email("user.name+tag@domain.co.uk"))
+
+    def test_username_validation(self):
+        """Test validace uživatelského jména"""
+        # Test příliš krátkého jména
+        self.assertFalse(self.data_manager.validate_username("ab"))
+        
+        # Test jména s nepovolenými znaky
+        self.assertFalse(self.data_manager.validate_username("user@name"))
+        self.assertFalse(self.data_manager.validate_username("user name"))
+        
+        # Test již existujícího jména
+        self.assertFalse(self.data_manager.validate_username(self.test_username))
+        
+        # Test validních jmen
+        self.assertTrue(self.data_manager.validate_username("new_user123"))
+        self.assertTrue(self.data_manager.validate_username("validUser"))
+
+    def test_email_uniqueness(self):
+        """Test unikátnosti emailu"""
+        # První registrace by měla projít
+        self.assertTrue(self.data_manager.create_user("user1", "ValidPass123!", "test1@example.com"))
+        
+        # Druhá registrace se stejným emailem by měla selhat
+        self.assertFalse(self.data_manager.create_user("user2", "ValidPass123!", "test1@example.com"))
+
+    def test_registration_validation(self):
+        """Test validace při registraci"""
+        # Test registrace s nevalidním heslem
+        self.assertFalse(self.data_manager.create_user("testuser1", "short", "valid@email.com"))
+        
+        # Test registrace s nevalidním emailem
+        self.assertFalse(self.data_manager.create_user("testuser2", "ValidPass123!", "invalid"))
+        
+        # Test registrace s nevalidním uživatelským jménem
+        self.assertFalse(self.data_manager.create_user("a", "ValidPass123!", "valid@email.com"))
+        
+        # Test validní registrace
+        self.assertTrue(self.data_manager.create_user("validuser", "ValidPass123!", "new@email.com"))
 
 if __name__ == '__main__':
     unittest.main() 
