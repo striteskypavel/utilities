@@ -12,11 +12,11 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # Zkopírujeme requirements.txt a nainstalujeme závislosti
-COPY v02/requirements.txt .
+COPY requirements.txt .
 RUN pip install --no-cache-dir --prefer-binary -r requirements.txt
 
-# Zkopírujeme zdrojové soubory ze složky v02
-COPY v02/ .
+# Zkopírujeme zdrojové soubory
+COPY . .
 
 # Vytvoříme adresář pro uživatelská data
 RUN mkdir -p data/users

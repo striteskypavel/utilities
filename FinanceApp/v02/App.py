@@ -275,13 +275,43 @@ def show_investment_overview(username):
     with st.form("add_investment_form"):
         col1, col2 = st.columns(2)
         with col1:
-            amount = st.number_input("Částka (Kč)", min_value=0.0, value=0.0, step=1000.0)
-            investment_type = st.selectbox("Typ investice", ["ETF", "Akcie", "Kryptoměny"])
+            amount = st.number_input(
+                "Částka (Kč)", 
+                min_value=0.0, 
+                value=0.0, 
+                step=1000.0,
+                help="Zadejte částku v Kč. Použijte čísla bez mezer a speciálních znaků."
+            )
+            investment_type = st.selectbox(
+                "Typ investice",
+                options=[
+                    "Kryptoměny",
+                    "P2P půjčky",
+                    "ETF a akcie",
+                    "Doplňkové penzijní spoření",
+                    "Investiční platformy",
+                    "Spoření na cíl",
+                    "Nemovitosti",
+                    "Hotovost a běžné účty",
+                    "Konzervativní investice",
+                    "Ostatní"
+                ],
+                help="Vyberte kategorii vaší investice"
+            )
         
         with col2:
-            name = st.text_input("Název")
-            date = st.date_input("Datum")
-            note = st.text_input("Poznámka")
+            name = st.text_input(
+                "Název",
+                help="Zadejte název investice (např. 'Bitcoin', 'ETF World', 'Byt Praha')"
+            )
+            date = st.date_input(
+                "Datum",
+                help="Vyberte datum investice"
+            )
+            note = st.text_input(
+                "Poznámka",
+                help="Volitelná poznámka k investici"
+            )
         
         submitted = st.form_submit_button("Přidat")
         if submitted:
