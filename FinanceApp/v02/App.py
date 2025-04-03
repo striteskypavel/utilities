@@ -59,22 +59,17 @@ def login_page():
             st.error("Nesprávné přihlašovací údaje!")
 
 def register_page():
-    st.title("Registrace nového uživatele")
+    st.title("Registrace")
     
-    username = st.text_input("Nové uživatelské jméno", key="register_username")
-    password = st.text_input("Nové heslo", type="password", key="register_password")
-    password_confirm = st.text_input("Potvrzení hesla", type="password", key="register_password_confirm")
-    email = st.text_input("E-mail", key="register_email")
+    username = st.text_input("Uživatelské jméno", key="register_username")
+    password = st.text_input("Heslo", type="password", key="register_password")
+    email = st.text_input("Email", key="register_email")
     
-    if st.button("Registrovat se"):
-        if password != password_confirm:
-            st.error("Hesla se neshodují!")
-            return
+    if st.button("Registrovat"):
         if data_manager.create_user(username, password, email):
-            st.success("Registrace úspěšná! Můžete se přihlásit.")
-            st.rerun()
+            st.success("Registrace úspěšná! Nyní se můžete přihlásit.")
         else:
-            st.error("Uživatelské jméno již existuje!")
+            st.error("Registrace se nezdařila. Zkontrolujte zadané údaje.")
 
 def show_logout():
     """Zobrazí odhlašovací tlačítko."""

@@ -16,11 +16,42 @@ os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(USER_DATA_DIR, exist_ok=True)
 
 class DataManager:
-    def __init__(self):
-        """Inicializace DataManager."""
-        self.data_dir = DATA_DIR
-        self.user_data_dir = USER_DATA_DIR
+    def __init__(self, data_dir="data", user_data_dir="user_data"):
+        self.data_dir = data_dir
+        self.user_data_dir = user_data_dir
+        self.expense_file = os.path.join(data_dir, "expenses.json")
+        self.investment_file = os.path.join(data_dir, "investments.json")
+        self.history_file = os.path.join(data_dir, "history.json")
+        self.ensure_directories()
+        self.ensure_files()
+        
+    def ensure_directories(self):
+        """Ensure data directories exist"""
+        os.makedirs(self.data_dir, exist_ok=True)
         os.makedirs(self.user_data_dir, exist_ok=True)
+        
+    def ensure_files(self):
+        """Ensure data files exist with empty lists"""
+        for file_path in [self.expense_file, self.investment_file, self.history_file]:
+            if not os.path.exists(file_path):
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    json.dump([], f)
+                    
+    def get_user_data(self, username):
+        """Získá data uživatele z JSON souboru."""
+        try:
+            user_file = self.get_user_file_path(username)
+            if not os.path.exists(user_file):
+                return None
+                
+            with open(user_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                if not data:  # Kontrola prázdných dat
+                    return None
+                return data
+        except Exception as e:
+            print(f"Chyba při načítání dat uživatele: {e}")
+            return None
 
     def get_user_data_file(self, username):
         """Vrátí cestu k datovému souboru uživatele."""
@@ -229,7 +260,6 @@ class DataManager:
         try:
             # Načtení existujících dat
             data = self.load_data(username)
-            print(f"Existing data: {data}")
             
             # Příprava záznamu
             if isinstance(entry_data, (int, float)):
@@ -240,7 +270,6 @@ class DataManager:
                 }
             else:
                 entry = entry_data
-            print(f"New entry: {entry}")
             
             # Přidání nového záznamu
             if category not in data:
@@ -249,7 +278,6 @@ class DataManager:
                 data[category] = [data[category]]
             
             data[category].append(entry)
-            print(f"Updated data: {data}")
             
             # Uložení aktualizovaných dat
             self.save_data(username, data)
@@ -403,22 +431,13 @@ class DataManager:
         with open(expenses_file, 'w', encoding='utf-8') as f:
             json.dump(expenses, f, ensure_ascii=False, indent=2)
 
-    def verify_user(self, username, password):
-        """Ověří přihlašovací údaje uživatele."""
-        user = self.get_user(username)
-        if not user or 'password' not in user:
-            return False
+    def verify_user(self, username: str, password: str) -> bool:
+        """Ověří uživatele."""
         try:
-            return check_password_hash(user['password'], password)
-        except ValueError:
-            # If the hash method is invalid, try to rehash the password
-            try:
-                # Generate a new hash with the correct method
-                new_hash = generate_password_hash(password, method='pbkdf2:sha256:600000')
-                # Update the user's password hash
-                user['password'] = new_hash
-                with open(self.get_user_file_path(username), 'w', encoding='utf-8') as f:
-                    json.dump(user, f, ensure_ascii=False, indent=2)
-                return True
-            except:
+            user = self.get_user(username)
+            if not user:
                 return False
+            return check_password_hash(user['password'], password)
+        except Exception as e:
+            print(f"Chyba při ověřování uživatele: {str(e)}")
+            return False
