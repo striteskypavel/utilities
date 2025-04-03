@@ -4,17 +4,17 @@ import plotly.express as px
 import plotly.graph_objects as go
 from data_manager import DataManager
 
+data_manager = DataManager()
+
 def show_expense_tracker(username: str):
     """Zobrazí modul pro sledování výdajů a příjmů"""
     import streamlit as st
     
     st.title("Sledování výdajů a příjmů")
     
-    # Inicializace DataManager
-    data_manager = DataManager()
-    
     # Načtení dat
     data = data_manager.load_data(username)
+    expenses = data_manager.load_expenses(username)
     
     # Vytvoření dvou sloupců pro přehled
     col1, col2 = st.columns(2)

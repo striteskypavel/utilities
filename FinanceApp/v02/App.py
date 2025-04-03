@@ -52,70 +52,53 @@ def check_session():
             st.session_state.username = username
 
 def login_page():
-    """Zobrazí přihlašovací stránku."""
+    """Zobrazí přihlašovací formulář."""
     st.title("Přihlášení")
     
     username = st.text_input("Uživatelské jméno", key="login_username")
     password = st.text_input("Heslo", type="password", key="login_password")
     
     if st.button("Přihlásit se"):
-        if username and password:
-            if data_manager.verify_user(username, password):
-                st.session_state.logged_in = True
-                st.session_state.username = username
-                st.success("Přihlášení úspěšné!")
-                st.rerun()
-            else:
-                st.error("Neplatné přihlašovací údaje")
+        if data_manager.verify_user(username, password):
+            st.session_state["logged_in"] = True
+            st.session_state["username"] = username
+            st.rerun()
         else:
-            st.warning("Vyplňte všechna pole")
+            st.error("Neplatné přihlašovací údaje")
 
 def register_page():
-    """Zobrazí stránku pro registraci nového uživatele."""
+    """Zobrazí registrační formulář."""
     st.title("Registrace")
     
-    with st.form("register_form"):
-        username = st.text_input("Uživatelské jméno", key="register_username")
-        email = st.text_input("Email", key="register_email")
-        password = st.text_input("Heslo", type="password", key="register_password")
-        confirm_password = st.text_input("Potvrzení hesla", type="password", key="register_confirm_password")
-        
-        submitted = st.form_submit_button("Registrovat se")
-        
-        if submitted:
-            if not username or not email or not password or not confirm_password:
-                st.error("Všechna pole jsou povinná!")
-                return
-                
-            if password != confirm_password:
-                st.error("Hesla se neshodují!")
-                return
-                
-            if data_manager.create_user(username, password, email):
-                st.success("Registrace úspěšná! Můžete se přihlásit.")
-                time.sleep(3)  # Zobrazení zprávy po dobu 3 sekund
-                st.experimental_rerun()  # Obnovení stránky pro vyčištění formuláře
-            else:
-                st.error("Uživatelské jméno nebo email již existuje!")
+    username = st.text_input("Uživatelské jméno", key="register_username")
+    password = st.text_input("Heslo", type="password", key="register_password")
+    email = st.text_input("Email", key="register_email")
+    
+    if st.button("Registrovat"):
+        if data_manager.create_user(username, password, email):
+            st.success("Registrace úspěšná! Nyní se můžete přihlásit.")
+        else:
+            st.error("Registrace selhala. Zkontrolujte zadané údaje.")
 
 def show_logout():
-    """Zobrazí odhlašovací tlačítko."""
-    if st.sidebar.button("Odhlásit se", key="logout_button"):
-        # Vyčištění session state a cookie
-        st.session_state.clear()  # Vyčistí celý session state
-        clear_session_cookie()
+    """Zobrazí tlačítko pro odhlášení."""
+    if st.sidebar.button("Odhlásit se", key=f"logout_button_{st.session_state.get('session_id', '')}"):
+        st.session_state.logged_in = False
+        st.session_state.username = None
+        st.session_state.session_id = None
         st.rerun()
 
 def show_main_app(username, name):
     """Zobrazí hlavní aplikaci po přihlášení"""
-    # Zobrazení jména přihlášeného uživatele a tlačítka pro odhlášení
-    if st.sidebar.button("Odhlásit"):
-        st.session_state.pop("logged_in", None)
-        st.session_state.pop("username", None)
-        clear_session_cookie()  # Vymazání session cookie
-        st.rerun()
-    
+    # Zobrazení jména přihlášeného uživatele
     st.sidebar.title(f'Vítejte, {name}')
+    
+    # Zobrazení odhlašovacího tlačítka v hlavní aplikaci
+    if st.sidebar.button("Odhlásit se", key=f"main_logout_button_{st.session_state.get('session_id', '')}"):
+        st.session_state.logged_in = False
+        st.session_state.username = None
+        st.session_state.session_id = None
+        st.rerun()
     
     # Načtení dat pro přihlášeného uživatele
     data = data_manager.load_data(username)
@@ -757,7 +740,6 @@ def main():
     else:
         # Zobrazení hlavní aplikace
         show_main_app(st.session_state.username, st.session_state.username)
-        show_logout()
 
 if __name__ == "__main__":
     main()

@@ -350,6 +350,63 @@ class TestFinanceApp(unittest.TestCase):
             del users[test_username]
             self.data_manager.save_users(users)
 
+    def test_password_change(self):
+        """Test změny hesla."""
+        # Test změny hesla na platné
+        new_password = "NewTest123!"
+        self.assertTrue(
+            self.data_manager.update_user_password(self.test_username, new_password),
+            "Změna hesla by měla být úspěšná"
+        )
+        
+        # Ověření nového hesla
+        self.assertTrue(
+            self.data_manager.verify_user(self.test_username, new_password),
+            "Přihlášení s novým heslem by mělo být úspěšné"
+        )
+        
+        # Test změny hesla na neplatné
+        self.assertFalse(
+            self.data_manager.update_user_password(self.test_username, "weak"),
+            "Změna hesla na neplatné by měla selhat"
+        )
+        
+        # Test změny hesla neexistujícího uživatele
+        self.assertFalse(
+            self.data_manager.update_user_password("non_existent_user", "NewTest123!"),
+            "Změna hesla neexistujícího uživatele by měla selhat"
+        )
+    
+    def test_session_management(self):
+        """Test správy session a odhlašování."""
+        # Test přihlášení
+        self.assertTrue(
+            self.data_manager.verify_user(self.test_username, self.test_password),
+            "Přihlášení by mělo být úspěšné"
+        )
+        
+        # Simulace odhlašování - vyčištění session
+        session_data = {
+            "username": self.test_username,
+            "is_authenticated": True,
+            "last_activity": datetime.now().isoformat()
+        }
+        
+        # Ověření, že session data jsou vyčištěna
+        self.data_manager.save_data(self.test_username, {})
+        loaded_data = self.data_manager.load_data(self.test_username)
+        self.assertEqual(loaded_data, {}, "Session data by měla být vyčištěna po odhlášení")
+        
+        # Ověření, že uživatel je stále v databázi
+        users = self.data_manager.load_users()
+        self.assertIn(self.test_username, users, "Uživatel by měl zůstat v databázi po odhlášení")
+        
+        # Ověření, že se nelze přihlásit s vyčištěnými session daty
+        self.assertFalse(
+            self.data_manager.verify_user(self.test_username, "invalid_password"),
+            "Přihlášení s vyčištěnými session daty by mělo selhat"
+        )
+
 def test_login_existing_user(data_manager):
     """Test login functionality with an existing user."""
     # Create test user

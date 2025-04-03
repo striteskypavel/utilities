@@ -91,7 +91,7 @@ class DataManager:
             if username not in users:
                 return False
 
-            users[username]['password'] = generate_password_hash(new_password)
+            users[username]['password'] = generate_password_hash(new_password, method='pbkdf2:sha256')
             self.save_users(users)
             return True
         except Exception as e:

@@ -30,4 +30,4 @@ ENV STREAMLIT_SERVER_ADDRESS=0.0.0.0
 ENV DATA_DIR=/app/data
 
 # Spustíme aplikaci
-CMD ["streamlit", "run", "App.py", "--server.address", "0.0.0.0", "--server.port", "8501"] 
+CMD streamlit run App.py --server.address 0.0.0.0 --server.port 8501 
