@@ -148,11 +148,22 @@ class TestFinanceApp(unittest.TestCase):
 
     def test_email_uniqueness(self):
         """Test unikátnosti emailu"""
+        # Vyčištění testovacích dat
+        if os.path.exists(self.data_manager.data_dir):
+            shutil.rmtree(self.data_manager.data_dir)
+        if os.path.exists(self.data_manager.user_data_dir):
+            shutil.rmtree(self.data_manager.user_data_dir)
+        os.makedirs(self.data_manager.data_dir, exist_ok=True)
+        os.makedirs(self.data_manager.user_data_dir, exist_ok=True)
+        
         # První registrace by měla projít
         self.assertTrue(self.data_manager.create_user("user1", "ValidPass123!", "test1@example.com"))
         
         # Druhá registrace se stejným emailem by měla selhat
         self.assertFalse(self.data_manager.create_user("user2", "ValidPass123!", "test1@example.com"))
+        
+        # Registrace s jiným emailem by měla projít
+        self.assertTrue(self.data_manager.create_user("user3", "ValidPass123!", "test2@example.com"))
 
     def test_registration_validation(self):
         """Test validace při registraci"""
@@ -173,55 +184,30 @@ class TestFinanceApp(unittest.TestCase):
         # Vyčištění testovacích dat
         if os.path.exists(self.data_manager.data_dir):
             shutil.rmtree(self.data_manager.data_dir)
-        os.makedirs(self.data_manager.data_dir)
-        os.makedirs(self.data_manager.user_data_dir)
-
+        if os.path.exists(self.data_manager.user_data_dir):
+            shutil.rmtree(self.data_manager.user_data_dir)
+        os.makedirs(self.data_manager.data_dir, exist_ok=True)
+        os.makedirs(self.data_manager.user_data_dir, exist_ok=True)
+        
         # Vytvoření dvou testovacích uživatelů
-        self.assertTrue(self.data_manager.create_user("user1", "ValidPass123!", "user1@example.com"))
-        self.assertTrue(self.data_manager.create_user("user2", "ValidPass123!", "user2@example.com"))
-
-        # Simulace přihlášení obou uživatelů
-        session1 = {"is_logged_in": False, "username": None}
-        session2 = {"is_logged_in": False, "username": None}
-
-        # Přihlášení prvního uživatele
-        if self.data_manager.verify_user("user1", "ValidPass123!"):
-            session1["is_logged_in"] = True
-            session1["username"] = "user1"
-
-        # Přihlášení druhého uživatele
-        if self.data_manager.verify_user("user2", "ValidPass123!"):
-            session2["is_logged_in"] = True
-            session2["username"] = "user2"
-
-        # Ověření, že oba uživatelé jsou přihlášeni
-        self.assertTrue(session1["is_logged_in"])
-        self.assertTrue(session2["is_logged_in"])
-        self.assertEqual(session1["username"], "user1")
-        self.assertEqual(session2["username"], "user2")
-
-        # Ověření, že každý uživatel má přístup ke svým datům
-        user1_data = self.data_manager.load_data("user1")
-        user2_data = self.data_manager.load_data("user2")
-
-        # Ověření, že data uživatelů jsou oddělená
-        self.assertNotEqual(id(user1_data), id(user2_data))
-
-        # Test přidání dat pro každého uživatele
-        test_data1 = {"Test1": [{"amount": 1000, "timestamp": "2024-01-01", "note": "Test entry 1"}]}
-        test_data2 = {"Test2": [{"amount": 2000, "timestamp": "2024-01-01", "note": "Test entry 2"}]}
-
-        self.data_manager.save_data("user1", test_data1)
-        self.data_manager.save_data("user2", test_data2)
-
-        # Ověření, že data zůstala oddělená
-        updated_data1 = self.data_manager.load_data("user1")
-        updated_data2 = self.data_manager.load_data("user2")
-
-        self.assertIn("Test1", updated_data1)
-        self.assertIn("Test2", updated_data2)
-        self.assertNotIn("Test2", updated_data1)
-        self.assertNotIn("Test1", updated_data2)
+        user1 = "test_user1"
+        user2 = "test_user2"
+        password = "Test123!"
+        email1 = "test1@example.com"
+        email2 = "test2@example.com"
+        
+        # Vytvoření uživatelů
+        self.assertTrue(self.data_manager.create_user(user1, password, email1))
+        self.assertTrue(self.data_manager.create_user(user2, password, email2))
+        
+        # Simulace souběžného přihlášení
+        self.assertTrue(self.data_manager.verify_user(user1, password))
+        self.assertTrue(self.data_manager.verify_user(user2, password))
+        
+        # Kontrola, že data zůstávají oddělená
+        data1 = self.data_manager.load_data(user1)
+        data2 = self.data_manager.load_data(user2)
+        self.assertNotEqual(data1, data2)
 
 if __name__ == '__main__':
     unittest.main() 

@@ -1,0 +1,6 @@
+{
+  "username": "user3",
+  "password": "pbkdf2:sha256:600000$xdIBe9MRpOjnMMr2$7cd6f6ba8d69c0fa5028480a3590473243c33588ec45083de0a5d26a327fb830",
+  "email": "test2@example.com",
+  "created_at": "2025-04-03T13:35:36.667834"
+}
