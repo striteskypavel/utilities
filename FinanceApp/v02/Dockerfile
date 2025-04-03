@@ -18,8 +18,8 @@ RUN pip install --no-cache-dir --prefer-binary -r requirements.txt
 # Zkopírujeme zdrojové soubory
 COPY . .
 
-# Vytvoříme adresář pro uživatelská data
-RUN mkdir -p data/users
+# Vytvoříme adresář pro uživatelská data (pouze pro lokální vývoj)
+RUN mkdir -p /data/users
 
 # Exponujeme port pro Streamlit
 EXPOSE 8501
@@ -27,6 +27,7 @@ EXPOSE 8501
 # Nastavíme proměnné prostředí pro Streamlit
 ENV STREAMLIT_SERVER_PORT=8501
 ENV STREAMLIT_SERVER_ADDRESS=0.0.0.0
+ENV DATA_DIR=/data
 
 # Spustíme aplikaci
 CMD ["streamlit", "run", "App.py"] 

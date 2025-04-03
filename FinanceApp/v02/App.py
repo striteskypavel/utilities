@@ -43,6 +43,14 @@ if 'username' not in st.session_state:
 if 'session_id' not in st.session_state:
     st.session_state.session_id = str(time.time())
 
+# Kontrola session cookie při načtení stránky
+def check_session():
+    if not st.session_state.logged_in:
+        username = get_session_cookie()
+        if username:
+            st.session_state.logged_in = True
+            st.session_state.username = username
+
 def login_page():
     st.title("Přihlášení")
     
@@ -53,6 +61,7 @@ def login_page():
         if data_manager.verify_user(username, password):
             st.session_state.logged_in = True
             st.session_state.username = username
+            create_session_cookie(username)  # Vytvoření session cookie
             st.success("Přihlášení úspěšné!")
             st.rerun()
         else:
@@ -74,18 +83,20 @@ def register_page():
 def show_logout():
     """Zobrazí odhlašovací tlačítko."""
     if st.sidebar.button("Odhlásit se"):
-        # Vyčištění session state
+        # Vyčištění session state a cookie
         st.session_state.pop("username", None)
         st.session_state.pop("logged_in", None)
         st.session_state.pop("session_id", None)
+        clear_session_cookie()
         st.rerun()
 
 def show_main_app(username, name):
     """Zobrazí hlavní aplikaci po přihlášení"""
     # Zobrazení jména přihlášeného uživatele a tlačítka pro odhlášení
     if st.sidebar.button("Odhlásit"):
-        del st.session_state["logged_in"]
-        del st.session_state["username"]
+        st.session_state.pop("logged_in", None)
+        st.session_state.pop("username", None)
+        clear_session_cookie()  # Vymazání session cookie
         st.rerun()
     
     st.sidebar.title(f'Vítejte, {name}')
@@ -717,28 +728,20 @@ def show_settings(username: str):
                     st.error("Nepodařilo se změnit heslo")
 
 def main():
-    """Hlavní funkce aplikace"""
-    st.title("Finance App")
+    # Kontrola session při startu
+    check_session()
     
     if not st.session_state.logged_in:
-        tab1, tab2 = st.tabs(["Přihlášení", "Registrace"])
-        
-        with tab1:
+        # Zobrazení přihlašovací nebo registrační stránky
+        page = st.sidebar.radio("Vyberte akci:", ["Přihlášení", "Registrace"])
+        if page == "Přihlášení":
             login_page()
-            
-        with tab2:
+        else:
             register_page()
     else:
-        # Získání dat uživatele
-        user_data = data_manager.get_user(st.session_state.username)
-        if user_data:
-            show_main_app(st.session_state.username, user_data.get('username', st.session_state.username))
-        else:
-            st.error("Nepodařilo se načíst data uživatele")
-            if st.button("Odhlásit se"):
-                st.session_state.logged_in = False
-                st.session_state.username = None
-                st.rerun()
+        # Zobrazení hlavní aplikace
+        show_main_app(st.session_state.username, st.session_state.username)
+        show_logout()
 
 if __name__ == "__main__":
     main()

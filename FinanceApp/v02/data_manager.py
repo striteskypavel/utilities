@@ -7,21 +7,22 @@ import pandas as pd
 from werkzeug.security import check_password_hash, generate_password_hash
 import re
 
-# Cesta k datovým souborům
-DATA_DIR = os.getenv("DATA_DIR", "data")
-USER_DATA_DIR = os.getenv("USER_DATA_DIR", os.path.join(DATA_DIR, "users"))
+# Cesta k datovým souborům - používáme absolutní cestu v persistentním úložišti
+DATA_DIR = os.getenv("DATA_DIR", "/app/data")
+USER_DATA_DIR = os.path.join(DATA_DIR, "users")
 
 # Vytvoření všech potřebných adresářů
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(USER_DATA_DIR, exist_ok=True)
 
 class DataManager:
-    def __init__(self, data_dir="data", user_data_dir="user_data"):
-        self.data_dir = data_dir
-        self.user_data_dir = user_data_dir
-        self.expense_file = os.path.join(data_dir, "expenses.json")
-        self.investment_file = os.path.join(data_dir, "investments.json")
-        self.history_file = os.path.join(data_dir, "history.json")
+    def __init__(self, data_dir=None, user_data_dir=None):
+        self.data_dir = data_dir or DATA_DIR
+        self.user_data_dir = user_data_dir or USER_DATA_DIR
+        self.expense_file = os.path.join(self.data_dir, "expenses.json")
+        self.investment_file = os.path.join(self.data_dir, "investments.json")
+        self.history_file = os.path.join(self.data_dir, "history.json")
+        self.users_file = os.path.join(self.user_data_dir, "users.json")
         self.ensure_directories()
         self.ensure_files()
         
@@ -32,10 +33,10 @@ class DataManager:
         
     def ensure_files(self):
         """Ensure data files exist with empty lists"""
-        for file_path in [self.expense_file, self.investment_file, self.history_file]:
+        for file_path in [self.expense_file, self.investment_file, self.history_file, self.users_file]:
             if not os.path.exists(file_path):
                 with open(file_path, 'w', encoding='utf-8') as f:
-                    json.dump([], f)
+                    json.dump({}, f)
                     
     def get_user_data(self, username):
         """Získá data uživatele z JSON souboru."""
@@ -129,52 +130,22 @@ class DataManager:
             return False  # Pokud nelze ověřit, předpokládáme, že email není unikátní
 
     def create_user(self, username, password, email):
-        """Vytvoří nového uživatele s validací."""
+        """Vytvoří nového uživatele"""
         try:
-            # Vytvoření adresářů
-            os.makedirs(self.data_dir, exist_ok=True)
-            os.makedirs(self.user_data_dir, exist_ok=True)
-            
-            # Validace vstupů
-            if not self.validate_username(username, check_existence=True):
+            users = self.load_users()
+            if username in users:
                 return False
-            if not self.validate_password(password):
-                print("Neplatné heslo")
+            if any(user['email'] == email for user in users.values()):
                 return False
-            if not self.validate_email(email):
-                print("Neplatný email")
-                return False
-            if not self.is_email_unique(email):
-                return False
-            
-            # Vytvoření uživatele
-            user_file = self.get_user_file_path(username)
-            password_hash = generate_password_hash(password, method='pbkdf2:sha256:600000')
-            
-            user_data = {
-                "username": username,
-                "password": password_hash,
-                "email": email,
-                "created_at": datetime.now().isoformat()
+            users[username] = {
+                'password': generate_password_hash(password, method='pbkdf2:sha256:600000'),
+                'email': email,
+                'created_at': datetime.now().isoformat()
             }
-            
-            # Vytvoření všech potřebných souborů
-            with open(user_file, 'w', encoding='utf-8') as f:
-                json.dump(user_data, f, ensure_ascii=False, indent=2)
-            
-            # Vytvoření výchozích souborů pro data a historii
-            data_file = self.get_user_data_file(username)
-            history_file = self.get_user_history_file(username)
-            
-            with open(data_file, 'w', encoding='utf-8') as f:
-                json.dump({}, f, ensure_ascii=False, indent=2)
-            
-            with open(history_file, 'w', encoding='utf-8') as f:
-                json.dump([], f, ensure_ascii=False, indent=2)
-            
+            self.save_users(users)
             return True
         except Exception as e:
-            print(f"Chyba při vytváření uživatele: {str(e)}")
+            print(f"Chyba při vytváření uživatele: {e}")
             return False
 
     def get_user(self, username):
@@ -430,13 +401,34 @@ class DataManager:
         with open(expenses_file, 'w', encoding='utf-8') as f:
             json.dump(expenses, f, ensure_ascii=False, indent=2)
 
-    def verify_user(self, username: str, password: str) -> bool:
-        """Ověří uživatele."""
+    def verify_user(self, username, password):
+        """Ověří přihlašovací údaje uživatele"""
         try:
-            user = self.get_user(username)
-            if not user:
+            users = self.load_users()
+            if username not in users:
                 return False
-            return check_password_hash(user['password'], password)
+            return check_password_hash(users[username]['password'], password)
         except Exception as e:
-            print(f"Chyba při ověřování uživatele: {str(e)}")
+            print(f"Chyba při ověřování uživatele: {e}")
+            return False
+
+    def load_users(self):
+        """Načte data uživatelů"""
+        try:
+            if not os.path.exists(self.users_file):
+                return {}
+            with open(self.users_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Chyba při načítání uživatelů: {e}")
+            return {}
+
+    def save_users(self, users):
+        """Uloží data uživatelů"""
+        try:
+            with open(self.users_file, 'w', encoding='utf-8') as f:
+                json.dump(users, f, indent=2)
+            return True
+        except Exception as e:
+            print(f"Chyba při ukládání uživatelů: {e}")
             return False

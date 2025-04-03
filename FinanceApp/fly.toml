@@ -12,6 +12,7 @@ primary_region = "fra"
 [env]
   STREAMLIT_SERVER_PORT = "8501"
   STREAMLIT_SERVER_ADDRESS = "0.0.0.0"
+  DATA_DIR = "/data"
 
 [http_service]
   internal_port = 8501
@@ -25,3 +26,7 @@ primary_region = "fra"
   cpu_kind = "shared"
   cpus = 1
   memory_mb = 1024
+
+[[mounts]]
+  source = "finance_data"
+  destination = "/data"
