@@ -1,6 +1,0 @@
-{
-  "username": "test_user",
-  "password": "pbkdf2:sha256:600000$a7gge8Nw003naSdT$44193289e8a98be034e68157a2b64a54df4a637e399de78523c31defc5609e2a",
-  "email": "test@example.com",
-  "created_at": "2025-04-01T22:33:46.046579"
-}

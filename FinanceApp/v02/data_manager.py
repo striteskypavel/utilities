@@ -118,6 +118,7 @@ class DataManager:
                         with open(os.path.join(self.user_data_dir, filename), 'r') as f:
                             user_data = json.load(f)
                             if isinstance(user_data, dict) and user_data.get('email') == email:
+                                print("Email již existuje")
                                 return False
                     except (json.JSONDecodeError, IOError, Exception) as e:
                         print(f"Chyba při čtení souboru {filename}: {str(e)}")
@@ -135,9 +136,8 @@ class DataManager:
             os.makedirs(self.user_data_dir, exist_ok=True)
             
             # Validace vstupů
-            if not self.validate_username(username):
-                if not self.validate_username(username, check_existence=True):
-                    return False
+            if not self.validate_username(username, check_existence=True):
+                return False
             if not self.validate_password(password):
                 print("Neplatné heslo")
                 return False
@@ -145,7 +145,6 @@ class DataManager:
                 print("Neplatný email")
                 return False
             if not self.is_email_unique(email):
-                print("Email již existuje")
                 return False
             
             # Vytvoření uživatele
