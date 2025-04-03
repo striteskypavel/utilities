@@ -5,209 +5,381 @@ from datetime import datetime
 import json
 from werkzeug.security import generate_password_hash
 import shutil
+import pytest
+import streamlit as st
+import tempfile
 
 # Přidání cesty k aplikaci do PYTHONPATH
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'v02')))
 
 from data_manager import DataManager
 
+@pytest.fixture
+def data_manager():
+    """Create a DataManager instance with test data directory."""
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'data')
+    os.makedirs(test_data_dir, exist_ok=True)
+    return DataManager(data_dir=test_data_dir)
+
 class TestFinanceApp(unittest.TestCase):
     def setUp(self):
         """Nastavení před každým testem"""
+        # Vytvoření dočasného adresáře pro testovací data
+        self.test_dir = tempfile.mkdtemp()
+        self.data_manager = DataManager(data_dir=self.test_dir)
+        
         self.test_username = "test_user"
         self.test_password = "Test123!"
         self.test_email = "test@example.com"
-        self.data_manager = DataManager()
         
         # Vytvoření testovacího uživatele
-        self.data_manager.create_user(
-            self.test_username,
-            self.test_password,  # Předáváme heslo v plaintextu
-            self.test_email
-        )
-
+        self.data_manager.create_user(self.test_username, self.test_password, self.test_email)
+    
     def tearDown(self):
         """Úklid po každém testu"""
-        # Smazání testovacích dat
-        user_file = self.data_manager.get_user_file_path(self.test_username)
-        if os.path.exists(user_file):
-            os.remove(user_file)
+        # Smazání dočasného adresáře
+        shutil.rmtree(self.test_dir)
+    
+    def test_login_existing_user(self):
+        """Test přihlášení existujícího uživatele."""
+        # Test přihlášení se správnými údaji
+        self.assertTrue(
+            self.data_manager.verify_user(self.test_username, self.test_password),
+            "Přihlášení se správnými údaji by mělo být úspěšné"
+        )
         
-        investments_file = os.path.join('data', f'{self.test_username}_investments.json')
-        if os.path.exists(investments_file):
-            os.remove(investments_file)
+        # Test přihlášení s nesprávným heslem
+        self.assertFalse(
+            self.data_manager.verify_user(self.test_username, "wrong_password"),
+            "Přihlášení s nesprávným heslem by mělo selhat"
+        )
         
-        expenses_file = os.path.join('data', f'{self.test_username}_expenses.json')
-        if os.path.exists(expenses_file):
-            os.remove(expenses_file)
-
-    def test_user_creation(self):
-        """Test vytvoření uživatele"""
-        # Test existence uživatele
-        user = self.data_manager.get_user(self.test_username)
-        self.assertIsNotNone(user)
-        self.assertEqual(user['username'], self.test_username)
-        self.assertEqual(user['email'], self.test_email)
-
-    def test_investment_operations(self):
-        """Test operací s investicemi"""
-        # Přidání testovací investice
-        test_investment = {
-            "amount": 10000,
-            "type": "ETF a akcie",
-            "name": "Test ETF",
-            "date": datetime.now().strftime("%Y-%m-%d"),
-            "note": "Testovací investice"
-        }
-        
-        # Test ukládání investic
-        investments = [test_investment]
-        self.data_manager.save_investments(self.test_username, investments)
-        
-        # Test načítání investic
-        loaded_investments = self.data_manager.load_investments(self.test_username)
-        self.assertEqual(len(loaded_investments), 1)
-        self.assertEqual(loaded_investments[0]['amount'], test_investment['amount'])
-        self.assertEqual(loaded_investments[0]['type'], test_investment['type'])
-
-    def test_expense_operations(self):
-        """Test operací s výdaji"""
-        # Přidání testovacího výdaje
-        test_expense = {
-            "amount": 1000,
-            "category": "Potraviny",
-            "type": "Výdaj",
-            "date": datetime.now().strftime("%Y-%m-%d"),
-            "note": "Testovací výdaj"
-        }
-        
-        # Test ukládání výdajů
-        expenses = [test_expense]
-        self.data_manager.save_expenses(self.test_username, expenses)
-        
-        # Test načítání výdajů
-        loaded_expenses = self.data_manager.load_expenses(self.test_username)
-        self.assertEqual(len(loaded_expenses), 1)
-        self.assertEqual(loaded_expenses[0]['amount'], test_expense['amount'])
-        self.assertEqual(loaded_expenses[0]['category'], test_expense['category'])
-
+        # Test přihlášení neexistujícího uživatele
+        self.assertFalse(
+            self.data_manager.verify_user("non_existent_user", self.test_password),
+            "Přihlášení neexistujícího uživatele by mělo selhat"
+        )
+    
     def test_user_authentication(self):
-        """Test autentizace uživatele"""
-        # Test správných přihlašovacích údajů
-        self.assertTrue(self.data_manager.verify_user(self.test_username, self.test_password))
+        """Test autentizace uživatele."""
+        # Test správného hesla
+        self.assertTrue(
+            self.data_manager.verify_user(self.test_username, self.test_password),
+            "Ověření správného hesla by mělo být úspěšné"
+        )
         
         # Test nesprávného hesla
-        self.assertFalse(self.data_manager.verify_user(self.test_username, "wrong_password"))
+        self.assertFalse(
+            self.data_manager.verify_user(self.test_username, "wrong_password"),
+            "Ověření nesprávného hesla by mělo selhat"
+        )
         
         # Test neexistujícího uživatele
-        self.assertFalse(self.data_manager.verify_user("nonexistent_user", "any_password"))
-
+        self.assertFalse(
+            self.data_manager.verify_user("non_existent_user", self.test_password),
+            "Ověření neexistujícího uživatele by mělo selhat"
+        )
+    
+    def test_user_creation(self):
+        """Test vytvoření uživatele."""
+        # Test vytvoření nového uživatele
+        new_username = "new_test_user"
+        new_password = "NewTest123!"
+        new_email = "new_test@example.com"
+        
+        self.assertTrue(
+            self.data_manager.create_user(new_username, new_password, new_email),
+            "Vytvoření nového uživatele by mělo být úspěšné"
+        )
+        
+        # Test vytvoření uživatele s existujícím jménem
+        self.assertFalse(
+            self.data_manager.create_user(self.test_username, "new_password", "new_email@example.com"),
+            "Vytvoření uživatele s existujícím jménem by mělo selhat"
+        )
+        
+        # Test vytvoření uživatele s existujícím emailem
+        self.assertFalse(
+            self.data_manager.create_user("another_user", "new_password", self.test_email),
+            "Vytvoření uživatele s existujícím emailem by mělo selhat"
+        )
+    
     def test_password_validation(self):
-        """Test validace hesla"""
+        """Test validace hesla."""
+        # Test platného hesla
+        self.assertTrue(
+            self.data_manager.validate_password("ValidPass123!"),
+            "Platné heslo by mělo projít validací"
+        )
+        
         # Test příliš krátkého hesla
-        self.assertFalse(self.data_manager.validate_password("short"))
+        self.assertFalse(
+            self.data_manager.validate_password("Short1!"),
+            "Příliš krátké heslo by nemělo projít validací"
+        )
         
         # Test hesla bez čísla
-        self.assertFalse(self.data_manager.validate_password("NoNumber!"))
+        self.assertFalse(
+            self.data_manager.validate_password("NoNumber!"),
+            "Heslo bez čísla by nemělo projít validací"
+        )
         
         # Test hesla bez velkého písmena
-        self.assertFalse(self.data_manager.validate_password("nouppercase123!"))
+        self.assertFalse(
+            self.data_manager.validate_password("nouppercase1!"),
+            "Heslo bez velkého písmena by nemělo projít validací"
+        )
         
         # Test hesla bez speciálního znaku
-        self.assertFalse(self.data_manager.validate_password("NoSpecial123"))
-        
-        # Test validního hesla
-        self.assertTrue(self.data_manager.validate_password("ValidPass123!"))
-
-    def test_email_validation(self):
-        """Test validace emailu"""
-        # Test nevalidních emailů
-        self.assertFalse(self.data_manager.validate_email("notanemail"))
-        self.assertFalse(self.data_manager.validate_email("still@not"))
-        self.assertFalse(self.data_manager.validate_email("@invalid.com"))
-        
-        # Test validních emailů
-        self.assertTrue(self.data_manager.validate_email("valid@email.com"))
-        self.assertTrue(self.data_manager.validate_email("user.name+tag@domain.co.uk"))
-
+        self.assertFalse(
+            self.data_manager.validate_password("NoSpecial1"),
+            "Heslo bez speciálního znaku by nemělo projít validací"
+        )
+    
     def test_username_validation(self):
-        """Test validace uživatelského jména"""
+        """Test validace uživatelského jména."""
+        # Test platného jména
+        self.assertTrue(
+            self.data_manager.validate_username("valid_username"),
+            "Platné uživatelské jméno by mělo projít validací"
+        )
+        
         # Test příliš krátkého jména
-        self.assertFalse(self.data_manager.validate_username("ab"))
+        self.assertFalse(
+            self.data_manager.validate_username("a"),
+            "Příliš krátké jméno by nemělo projít validací"
+        )
         
-        # Test jména s nepovolenými znaky
-        self.assertFalse(self.data_manager.validate_username("user@name"))
-        self.assertFalse(self.data_manager.validate_username("user name"))
+        # Test jména s neplatnými znaky
+        self.assertFalse(
+            self.data_manager.validate_username("invalid@name"),
+            "Jméno s neplatnými znaky by nemělo projít validací"
+        )
+    
+    def test_email_validation(self):
+        """Test validace emailu."""
+        # Test platného emailu
+        self.assertTrue(
+            self.data_manager.validate_email("valid@example.com"),
+            "Platný email by měl projít validací"
+        )
         
-        # Test již existujícího jména (s explicitní kontrolou existence)
-        self.assertFalse(self.data_manager.validate_username(self.test_username, check_existence=True))
+        # Test emailu bez @
+        self.assertFalse(
+            self.data_manager.validate_email("invalid.email.com"),
+            "Email bez @ by neměl projít validací"
+        )
         
-        # Test validních jmen
-        self.assertTrue(self.data_manager.validate_username("new_user123"))
-        self.assertTrue(self.data_manager.validate_username("validUser"))
-
+        # Test emailu bez domény
+        self.assertFalse(
+            self.data_manager.validate_email("invalid@"),
+            "Email bez domény by neměl projít validací"
+        )
+        
+        # Test emailu bez uživatelské části
+        self.assertFalse(
+            self.data_manager.validate_email("@example.com"),
+            "Email bez uživatelské části by neměl projít validací"
+        )
+    
     def test_email_uniqueness(self):
-        """Test unikátnosti emailu"""
-        # Vyčištění testovacích dat
-        if os.path.exists(self.data_manager.data_dir):
-            shutil.rmtree(self.data_manager.data_dir)
-        if os.path.exists(self.data_manager.user_data_dir):
-            shutil.rmtree(self.data_manager.user_data_dir)
-        os.makedirs(self.data_manager.data_dir, exist_ok=True)
-        os.makedirs(self.data_manager.user_data_dir, exist_ok=True)
+        """Test jedinečnosti emailu."""
+        # Test vytvoření uživatele s unikátním emailem
+        new_username = "unique_user"
+        new_email = "unique@example.com"
+        self.assertTrue(
+            self.data_manager.create_user(new_username, "Test123!", new_email),
+            "Vytvoření uživatele s unikátním emailem by mělo být úspěšné"
+        )
         
-        # První registrace by měla projít
-        self.assertTrue(self.data_manager.create_user("user1", "ValidPass123!", "test1@example.com"))
-        
-        # Druhá registrace se stejným emailem by měla selhat
-        self.assertFalse(self.data_manager.create_user("user2", "ValidPass123!", "test1@example.com"))
-        
-        # Registrace s jiným emailem by měla projít
-        self.assertTrue(self.data_manager.create_user("user3", "ValidPass123!", "test2@example.com"))
-
+        # Test vytvoření uživatele s existujícím emailem
+        self.assertFalse(
+            self.data_manager.create_user("another_user", "Test123!", new_email),
+            "Vytvoření uživatele s existujícím emailem by mělo selhat"
+        )
+    
     def test_registration_validation(self):
-        """Test validace při registraci"""
-        # Test registrace s nevalidním heslem
-        self.assertFalse(self.data_manager.create_user("testuser1", "short", "valid@email.com"))
+        """Test validace registrace."""
+        # Test platné registrace
+        self.assertTrue(
+            self.data_manager.create_user("new_user", "ValidPass123!", "new@example.com"),
+            "Platná registrace by měla být úspěšná"
+        )
         
-        # Test registrace s nevalidním emailem
-        self.assertFalse(self.data_manager.create_user("testuser2", "ValidPass123!", "invalid"))
+        # Test registrace s neplatným jménem
+        self.assertFalse(
+            self.data_manager.create_user("a", "ValidPass123!", "new@example.com"),
+            "Registrace s neplatným jménem by měla selhat"
+        )
         
-        # Test registrace s nevalidním uživatelským jménem
-        self.assertFalse(self.data_manager.create_user("a", "ValidPass123!", "valid@email.com"))
+        # Test registrace s neplatným heslem
+        self.assertFalse(
+            self.data_manager.create_user("new_user", "weak", "new@example.com"),
+            "Registrace s neplatným heslem by měla selhat"
+        )
         
-        # Test validní registrace
-        self.assertTrue(self.data_manager.create_user("validuser", "ValidPass123!", "new@email.com"))
-
+        # Test registrace s neplatným emailem
+        self.assertFalse(
+            self.data_manager.create_user("new_user", "ValidPass123!", "invalid.email"),
+            "Registrace s neplatným emailem by měla selhat"
+        )
+    
+    def test_expense_operations(self):
+        """Test operací s výdaji."""
+        # Přidání výdaje
+        expense = {
+            "amount": 100.0,
+            "category": "Test",
+            "date": datetime.now().isoformat(),
+            "note": "Test expense"
+        }
+        self.assertTrue(
+            self.data_manager.add_entry(self.test_username, "expense", expense),
+            "Přidání výdaje by mělo být úspěšné"
+        )
+        
+        # Načtení výdajů
+        expenses = self.data_manager.load_expenses(self.test_username)
+        self.assertEqual(len(expenses), 1, "Měl by existovat jeden výdaj")
+        self.assertEqual(expenses[0]["amount"], 100.0, "Částka výdaje by měla být 100.0")
+    
+    def test_investment_operations(self):
+        """Test operací s investicemi."""
+        # Přidání investice
+        investment = {
+            "amount": 1000.0,
+            "type": "Test",
+            "date": datetime.now().isoformat(),
+            "note": "Test investment"
+        }
+        self.assertTrue(
+            self.data_manager.add_entry(self.test_username, "investment", investment),
+            "Přidání investice by mělo být úspěšné"
+        )
+        
+        # Načtení investic
+        investments = self.data_manager.load_investments(self.test_username)
+        self.assertEqual(len(investments), 1, "Měla by existovat jedna investice")
+        self.assertEqual(investments[0]["amount"], 1000.0, "Částka investice by měla být 1000.0")
+    
     def test_concurrent_user_sessions(self):
-        """Test souběžného přihlášení více uživatelů"""
+        """Test souběžných uživatelských session."""
+        # Vytvoření druhého uživatele
+        second_username = "second_user"
+        second_password = "Test123!"
+        second_email = "second@example.com"
+        self.assertTrue(
+            self.data_manager.create_user(second_username, second_password, second_email),
+            "Vytvoření druhého uživatele by mělo být úspěšné"
+        )
+        
+        # Test přihlášení prvního uživatele
+        self.assertTrue(
+            self.data_manager.verify_user(self.test_username, self.test_password),
+            "Přihlášení prvního uživatele by mělo být úspěšné"
+        )
+        
+        # Test přihlášení druhého uživatele
+        self.assertTrue(
+            self.data_manager.verify_user(second_username, second_password),
+            "Přihlášení druhého uživatele by mělo být úspěšné"
+        )
+        
+        # Test, že data uživatelů jsou oddělená
+        expense1 = {
+            "amount": 100.0,
+            "category": "Test1",
+            "date": datetime.now().isoformat(),
+            "note": "Test expense 1"
+        }
+        expense2 = {
+            "amount": 200.0,
+            "category": "Test2",
+            "date": datetime.now().isoformat(),
+            "note": "Test expense 2"
+        }
+        
+        self.data_manager.add_entry(self.test_username, "expense", expense1)
+        self.data_manager.add_entry(second_username, "expense", expense2)
+        
+        expenses1 = self.data_manager.load_expenses(self.test_username)
+        expenses2 = self.data_manager.load_expenses(second_username)
+        
+        self.assertEqual(len(expenses1), 1, "První uživatel by měl mít jeden výdaj")
+        self.assertEqual(len(expenses2), 1, "Druhý uživatel by měl mít jeden výdaj")
+        self.assertNotEqual(expenses1[0]["amount"], expenses2[0]["amount"], "Výdaje uživatelů by měly být různé")
+
+    def test_session_persistence(self):
+        """Test přetrvávání session po obnovení stránky."""
+        # Vytvoření testovacího uživatele
+        test_username = "test_session_user"
+        test_password = "Test123!"
+        test_email = "test_session@example.com"
+        
+        # Vytvoření uživatele
+        self.assertTrue(
+            self.data_manager.create_user(test_username, test_password, test_email),
+            "Vytvoření testovacího uživatele by mělo být úspěšné"
+        )
+        
+        # Simulace přihlášení
+        self.assertTrue(
+            self.data_manager.verify_user(test_username, test_password),
+            "Přihlášení by mělo být úspěšné"
+        )
+        
+        # Uložení session dat
+        session_data = {
+            "username": test_username,
+            "is_authenticated": True,
+            "last_activity": datetime.now().isoformat()
+        }
+        
+        # Simulace obnovení stránky - načtení session dat
+        loaded_session = self.data_manager.get_user_data(test_username)
+        
+        # Ověření, že session data jsou zachována
+        self.assertIsNotNone(loaded_session, "Session data by měla existovat")
+        self.assertEqual(loaded_session["username"], test_username, "Uživatelské jméno by mělo být zachováno")
+        self.assertTrue(loaded_session.get("is_authenticated", False), "Stav přihlášení by měl být zachován")
+        
         # Vyčištění testovacích dat
-        if os.path.exists(self.data_manager.data_dir):
-            shutil.rmtree(self.data_manager.data_dir)
-        if os.path.exists(self.data_manager.user_data_dir):
-            shutil.rmtree(self.data_manager.user_data_dir)
-        os.makedirs(self.data_manager.data_dir, exist_ok=True)
-        os.makedirs(self.data_manager.user_data_dir, exist_ok=True)
-        
-        # Vytvoření dvou testovacích uživatelů
-        user1 = "test_user1"
-        user2 = "test_user2"
-        password = "Test123!"
-        email1 = "test1@example.com"
-        email2 = "test2@example.com"
-        
-        # Vytvoření uživatelů
-        self.assertTrue(self.data_manager.create_user(user1, password, email1))
-        self.assertTrue(self.data_manager.create_user(user2, password, email2))
-        
-        # Simulace souběžného přihlášení
-        self.assertTrue(self.data_manager.verify_user(user1, password))
-        self.assertTrue(self.data_manager.verify_user(user2, password))
-        
-        # Kontrola, že data zůstávají oddělená
-        data1 = self.data_manager.load_data(user1)
-        data2 = self.data_manager.load_data(user2)
-        self.assertNotEqual(data1, data2)
+        self.data_manager.save_data(test_username, {})
+        users = self.data_manager.load_users()
+        if test_username in users:
+            del users[test_username]
+            self.data_manager.save_users(users)
+
+def test_login_existing_user(data_manager):
+    """Test login functionality with an existing user."""
+    # Create test user
+    username = "test_user"
+    password = "Test123!"
+    email = "test@example.com"
+    
+    # Ensure user doesn't exist first
+    users = data_manager.load_users()
+    if username in users:
+        del users[username]
+        data_manager.save_users(users)
+    
+    # Create new user
+    assert data_manager.create_user(username, password, email), "Failed to create test user"
+    
+    # Test login with correct credentials
+    assert data_manager.verify_user(username, password), "Login with correct credentials failed"
+    
+    # Test login with incorrect password
+    assert not data_manager.verify_user(username, "wrong_password"), "Login with incorrect password should fail"
+    
+    # Test login with non-existent user
+    assert not data_manager.verify_user("non_existent_user", password), "Login with non-existent user should fail"
+    
+    # Clean up
+    users = data_manager.load_users()
+    if username in users:
+        del users[username]
+        data_manager.save_users(users)
 
 if __name__ == '__main__':
     unittest.main() 

@@ -41,25 +41,36 @@ def show_retirement_planning():
     col1, col2 = st.columns(2)
     with col1:
         current_age = st.number_input("Váš věk", min_value=18, max_value=100, value=30)
-        retirement_age = st.number_input("Věk odchodu do důchodu", min_value=current_age, max_value=100, value=65)
         current_savings = st.number_input("Aktuální investice/úspory (Kč)", min_value=0, value=100000)
-        monthly_savings = st.number_input("Měsíční investice/úspory (Kč)", min_value=0, value=5000)
     
     with col2:
         years = st.number_input(
             "Doba investice (roky)",
             min_value=1,
-            max_value=50,
-            value=30,
-            step=1
+            max_value=100,
+            value=30
         )
-        
+        monthly_savings = st.number_input("Měsíční investice/úspory (Kč)", min_value=0, value=5000)
+    
+    # Další parametry
+    st.subheader("Další parametry")
+    col3, col4 = st.columns(2)
+    with col3:
         annual_rate = st.number_input(
-            "Očekávaný roční výnos (%)",
+            "Očekávaná roční výnosnost (%)",
             min_value=0.0,
             max_value=20.0,
             value=7.0,
-            step=0.5
+            step=0.1
+        )
+    
+    with col4:
+        inflation_rate = st.number_input(
+            "Očekávaná roční inflace (%)",
+            min_value=0.0,
+            max_value=20.0,
+            value=2.0,
+            step=0.1
         )
     
     # Výpočet hodnot

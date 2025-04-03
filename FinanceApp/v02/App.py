@@ -52,41 +52,57 @@ def check_session():
             st.session_state.username = username
 
 def login_page():
+    """Zobrazí přihlašovací stránku."""
     st.title("Přihlášení")
     
     username = st.text_input("Uživatelské jméno", key="login_username")
     password = st.text_input("Heslo", type="password", key="login_password")
     
     if st.button("Přihlásit se"):
-        if data_manager.verify_user(username, password):
-            st.session_state.logged_in = True
-            st.session_state.username = username
-            create_session_cookie(username)  # Vytvoření session cookie
-            st.success("Přihlášení úspěšné!")
-            st.rerun()
+        if username and password:
+            if data_manager.verify_user(username, password):
+                st.session_state.logged_in = True
+                st.session_state.username = username
+                st.success("Přihlášení úspěšné!")
+                st.rerun()
+            else:
+                st.error("Neplatné přihlašovací údaje")
         else:
-            st.error("Nesprávné přihlašovací údaje!")
+            st.warning("Vyplňte všechna pole")
 
 def register_page():
+    """Zobrazí stránku pro registraci nového uživatele."""
     st.title("Registrace")
     
-    username = st.text_input("Uživatelské jméno", key="register_username")
-    password = st.text_input("Heslo", type="password", key="register_password")
-    email = st.text_input("Email", key="register_email")
-    
-    if st.button("Registrovat"):
-        if data_manager.create_user(username, password, email):
-            st.success("Registrace úspěšná! Nyní se můžete přihlásit.")
-        else:
-            st.error("Registrace se nezdařila. Zkontrolujte zadané údaje.")
+    with st.form("register_form"):
+        username = st.text_input("Uživatelské jméno", key="register_username")
+        email = st.text_input("Email", key="register_email")
+        password = st.text_input("Heslo", type="password", key="register_password")
+        confirm_password = st.text_input("Potvrzení hesla", type="password", key="register_confirm_password")
+        
+        submitted = st.form_submit_button("Registrovat se")
+        
+        if submitted:
+            if not username or not email or not password or not confirm_password:
+                st.error("Všechna pole jsou povinná!")
+                return
+                
+            if password != confirm_password:
+                st.error("Hesla se neshodují!")
+                return
+                
+            if data_manager.create_user(username, password, email):
+                st.success("Registrace úspěšná! Můžete se přihlásit.")
+                time.sleep(3)  # Zobrazení zprávy po dobu 3 sekund
+                st.experimental_rerun()  # Obnovení stránky pro vyčištění formuláře
+            else:
+                st.error("Uživatelské jméno nebo email již existuje!")
 
 def show_logout():
     """Zobrazí odhlašovací tlačítko."""
-    if st.sidebar.button("Odhlásit se"):
+    if st.sidebar.button("Odhlásit se", key="logout_button"):
         # Vyčištění session state a cookie
-        st.session_state.pop("username", None)
-        st.session_state.pop("logged_in", None)
-        st.session_state.pop("session_id", None)
+        st.session_state.clear()  # Vyčistí celý session state
         clear_session_cookie()
         st.rerun()
 
