@@ -10,7 +10,7 @@ import streamlit as st
 import tempfile
 
 # Přidání cesty k aplikaci do PYTHONPATH
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'v02')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from data_manager import DataManager
 

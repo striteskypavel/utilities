@@ -8,7 +8,7 @@ import pandas as pd
 from werkzeug.security import generate_password_hash
 
 # Přidání cesty k aplikaci do PYTHONPATH
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'v02')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from data_manager import DataManager
 
@@ -18,12 +18,15 @@ class TestFinanceAppExtended(unittest.TestCase):
         self.test_username = "test_user"
         self.test_password = "Test123!"
         self.test_email = "test@example.com"
-        self.data_manager = DataManager()
+        
+        # Vytvoření dočasného adresáře pro testovací data
+        self.test_dir = tempfile.mkdtemp()
+        self.data_manager = DataManager(data_dir=self.test_dir)
         
         # Vytvoření testovacího uživatele
         self.data_manager.create_user(
             self.test_username,
-            generate_password_hash(self.test_password),
+            self.test_password,
             self.test_email
         )
 

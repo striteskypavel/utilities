@@ -24,7 +24,7 @@ class TestExpenseInvestmentManager(unittest.TestCase):
     def setUp(self):
         """Nastavení před každým testem"""
         self.test_username = "test_user"
-        self.data_manager = DataManager()
+        self.data_manager = DataManager(data_dir=TEST_DIR)
         
         # Nastavení cest k testovacím souborům
         self.investments_file = self.data_manager.get_user_investments_file(self.test_username)

@@ -9,13 +9,13 @@ import re
 
 class DataManager:
     # Default paths for data storage
-    DEFAULT_DATA_DIR = "/app/data"
+    DEFAULT_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
     DEFAULT_USER_DATA_DIR = None  # Will be set based on DATA_DIR
 
-    def __init__(self, data_dir=None, user_data_dir=None):
+    def __init__(self, data_dir=None):
         """Initialize the DataManager with specified or default directories."""
         self.data_dir = data_dir or os.getenv("DATA_DIR", self.DEFAULT_DATA_DIR)
-        self.user_data_dir = user_data_dir or os.path.join(self.data_dir, "users")
+        self.user_data_dir = os.path.join(self.data_dir, "users")
         
         self.expense_file = os.path.join(self.data_dir, "expenses.json")
         self.investment_file = os.path.join(self.data_dir, "investments.json")
@@ -171,22 +171,29 @@ class DataManager:
             print(f"Chyba při ukládání dat: {str(e)}")
             return False
 
-    def add_entry(self, username, entry_type, entry):
+    def add_entry(self, username, category, entry):
         """Přidá nový záznam pro daného uživatele."""
         try:
+            # Kontrola prázdné kategorie
+            if not category or category.strip() == "":
+                raise ValueError("Kategorie nemůže být prázdná")
+
             # Načtení existujících dat
             data = self.load_data(username)
-            if not data:
-                data = {}
-            
+
             # Inicializace kategorie, pokud neexistuje
-            if entry_type not in data:
-                data[entry_type] = []
-            
-            # Přidání záznamu
-            data[entry_type].append(entry)
-            
-            # Uložení aktualizovaných dat
+            if category not in data:
+                data[category] = []
+
+            # Kontrola duplicitního záznamu
+            for existing_entry in data[category]:
+                if (existing_entry.get('type') == entry.get('type') and
+                    abs(float(existing_entry.get('amount', 0)) - float(entry.get('amount', 0))) < 0.01 and
+                    existing_entry.get('timestamp') == entry.get('timestamp')):
+                    return True  # Duplicitní záznam nalezen
+
+            # Přidání nového záznamu
+            data[category].append(entry)
             self.save_data(username, data)
             return True
         except Exception as e:
@@ -227,26 +234,17 @@ class DataManager:
         try:
             # Nejprve zkusíme načíst z nové struktury
             data = self.load_data(username)
-            expenses = data.get('expense', [])
-            if expenses:
-                return expenses
-
-            # Pokud nejsou v nové struktuře, zkusíme starou
-            expenses_file = self.get_user_expenses_file(username)
-            if os.path.exists(expenses_file):
-                with open(expenses_file, 'r', encoding='utf-8') as f:
-                    try:
-                        expenses = json.load(f)
-                        # Uložíme do nové struktury pro příští použití
-                        data['expense'] = expenses
-                        self.save_data(username, data)
-                        return expenses
-                    except json.JSONDecodeError:
-                        # Pokud je soubor poškozen, vytvoříme zálohu
-                        backup_file = expenses_file + '.backup'
-                        os.rename(expenses_file, backup_file)
-                        return []
-            return []
+            expenses = []
+            for category, entries in data.items():
+                for entry in entries:
+                    if entry['type'] == 'Výdaj':
+                        expenses.append({
+                            'category': category,
+                            'amount': float(entry['amount']),
+                            'timestamp': entry['timestamp'],
+                            'note': entry.get('note', '')
+                        })
+            return expenses
         except Exception as e:
             print(f"Chyba při načítání výdajů: {str(e)}")
             return []
@@ -399,3 +397,8 @@ class DataManager:
         except Exception as e:
             print(f"Chyba při exportu dat: {str(e)}")
             return False 
+
+    def get_user(self, username):
+        """Získá data uživatele."""
+        users = self.load_users()
+        return users.get(username)

@@ -214,7 +214,9 @@ def show_expense_tracker(username: str):
             st.info("Zatím nejsou žádné záznamy pro zobrazení grafu")
     
     # Zobrazení detailních záznamů
-    st.subheader("Detailní záznamy")
+    st.markdown("---")  # Přidáme oddělovač
+    st.subheader("Přehled všech záznamů")
+    
     if data:
         # Vytvoření DataFrame pro tabulku
         df_details = []
@@ -240,7 +242,164 @@ def show_expense_tracker(username: str):
         df_details = pd.DataFrame(df_details)
         df_details = df_details.sort_values('Datum', ascending=False)
         
-        # Zobrazení tabulky
-        st.dataframe(df_details, use_container_width=True)
+        # Zobrazení editovatelné tabulky
+        edited_df = st.data_editor(
+            df_details,
+            use_container_width=True,
+            num_rows="dynamic",
+            hide_index=True,
+            column_config={
+                "Kategorie": st.column_config.TextColumn(
+                    "Kategorie",
+                    help="Název kategorie",
+                    required=True,
+                    width="medium"
+                ),
+                "Typ": st.column_config.SelectboxColumn(
+                    "Typ",
+                    help="Typ záznamu",
+                    options=["Výdaj", "Příjem"],
+                    required=True,
+                    width="small"
+                ),
+                "Částka": st.column_config.NumberColumn(
+                    "Částka",
+                    help="Částka v Kč",
+                    min_value=0.0,
+                    step=100.0,
+                    required=True,
+                    width="small",
+                    format="%.2f Kč"
+                ),
+                "Datum": st.column_config.DatetimeColumn(
+                    "Datum",
+                    help="Datum záznamu",
+                    required=True,
+                    width="medium",
+                    format="DD.MM.YYYY HH:mm"
+                ),
+                "Poznámka": st.column_config.TextColumn(
+                    "Poznámka",
+                    help="Volitelná poznámka",
+                    width="large"
+                ),
+                "Upravit": st.column_config.CheckboxColumn(
+                    "Upravit",
+                    help="Zaškrtněte pro úpravu záznamu",
+                    default=False,
+                    width="small"
+                ),
+                "Smazat": st.column_config.CheckboxColumn(
+                    "Smazat",
+                    help="Zaškrtněte pro smazání záznamu",
+                    default=False,
+                    width="small"
+                )
+            },
+            key="expense_table",
+            disabled=False,
+            on_change=None
+        )
+        
+        # Přidáme mezeru a oddělovač
+        st.markdown("---")
+        
+        # Tlačítka vedle sebe
+        col1, col2 = st.columns(2)
+        with col1:
+            save_button = st.button(
+                "💾 Uložit změny",
+                type="primary",
+                use_container_width=True,
+                key="save_button"
+            )
+        with col2:
+            delete_button = st.button(
+                "🗑️ Smazat vybrané",
+                type="secondary",
+                use_container_width=True,
+                key="delete_button"
+            )
+        
+        # Zpracování smazání a úprav
+        if delete_button or save_button:
+            # Načtení existujících dat
+            existing_data = data_manager.load_data(username)
+            changes_made = False
+            categories_to_delete = set()  # Seznam kategorií ke smazání
+            
+            # Procházení všech řádků
+            for index, row in edited_df.iterrows():
+                category = row['Kategorie']
+                
+                # Pokud je záznam označen pro smazání a bylo stisknuto tlačítko smazat
+                if delete_button and row.get('Smazat', False):
+                    if category in existing_data:
+                        # Najít a smazat odpovídající záznam
+                        entries = existing_data[category]
+                        if isinstance(entries, list):
+                            # Filtrujeme záznamy, které se neshodují s aktuálním
+                            existing_data[category] = [
+                                entry for entry in entries
+                                if not (
+                                    entry.get('type') == row['Typ'] and
+                                    float(entry.get('amount', 0)) == float(row['Částka']) and
+                                    datetime.fromisoformat(entry.get('timestamp', '')).strftime('%Y-%m-%d %H:%M') == row['Datum']
+                                )
+                            ]
+                            if not existing_data[category]:  # Pokud je seznam prázdný
+                                categories_to_delete.add(category)
+                            changes_made = True
+                
+                # Pokud je záznam označen pro úpravu a bylo stisknuto tlačítko uložit
+                elif save_button and row.get('Upravit', False):
+                    if category not in existing_data:
+                        existing_data[category] = []
+                    
+                    # Vytvoření nového záznamu
+                    new_entry = {
+                        'type': row['Typ'],
+                        'amount': float(row['Částka']),
+                        'timestamp': datetime.strptime(row['Datum'], '%Y-%m-%d %H:%M').isoformat(),
+                        'note': row['Poznámka']
+                    }
+                    
+                    # Aktualizace nebo přidání záznamu
+                    entries = existing_data[category]
+                    if isinstance(entries, list):
+                        # Najít a aktualizovat existující záznam nebo přidat nový
+                        found = False
+                        for i, entry in enumerate(entries):
+                            if (entry.get('type') == row['Typ'] and
+                                float(entry.get('amount', 0)) == float(row['Částka']) and
+                                datetime.fromisoformat(entry.get('timestamp', '')).strftime('%Y-%m-%d %H:%M') == row['Datum']):
+                                entries[i] = new_entry
+                                found = True
+                                break
+                        if not found:
+                            entries.append(new_entry)
+                    else:
+                        existing_data[category] = [new_entry]
+                    changes_made = True
+            
+            # Smazání prázdných kategorií
+            for category in categories_to_delete:
+                del existing_data[category]
+            
+            # Uložení změn, pokud byly nějaké provedeny
+            if changes_made:
+                if data_manager.save_data(username, existing_data):
+                    if delete_button:
+                        st.success("Vybrané záznamy byly smazány!")
+                    else:
+                        st.success("Změny byly úspěšně uloženy!")
+                    st.rerun()
+                else:
+                    st.error("Nepodařilo se uložit změny. Zkuste to prosím znovu.")
+            else:
+                if delete_button:
+                    st.info("Nebyly vybrány žádné záznamy ke smazání.")
+                else:
+                    st.info("Nebyly vybrány žádné záznamy k úpravě.")
     else:
         st.info("Zatím nejsou žádné záznamy") 

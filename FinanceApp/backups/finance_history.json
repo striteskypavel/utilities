@@ -1,0 +1,80 @@
+{
+    "investments": [
+        {
+            "old_value": 1600000,
+            "new_value": 1400000,
+            "timestamp": "2025-03-02 22:12:23"
+        }
+    ],
+    "retirement_savings": [
+        {
+            "old_value": 160000,
+            "new_value": 12322323,
+            "timestamp": "2025-03-02 22:12:38"
+        },
+        {
+            "old_value": 12322323,
+            "new_value": 100000,
+            "timestamp": "2025-03-02 22:13:08"
+        }
+    ],
+    "real_estate": [
+        {
+            "old_value": 511000,
+            "new_value": 12,
+            "timestamp": "2025-03-02 22:12:45"
+        },
+        {
+            "old_value": 12,
+            "new_value": 22222,
+            "timestamp": "2025-03-02 22:12:56"
+        },
+        {
+            "old_value": 22222,
+            "new_value": 10000,
+            "timestamp": "2025-03-02 22:14:06"
+        },
+        {
+            "old_value": 10000,
+            "new_value": 20000,
+            "timestamp": "2025-03-02 22:14:15"
+        },
+        {
+            "old_value": 20000,
+            "new_value": 30000,
+            "timestamp": "2025-03-02 22:14:22"
+        }
+    ],
+    "portu_majda": [
+        {
+            "old_value": 540000,
+            "new_value": 550000,
+            "timestamp": "2025-03-03 20:59:44"
+        },
+        {
+            "old_value": 550000,
+            "new_value": 570000,
+            "timestamp": "2025-03-03 21:00:31"
+        },
+        {
+            "old_value": 570000,
+            "new_value": 600000,
+            "timestamp": "2025-03-03 21:01:04"
+        },
+        {
+            "old_value": 600000,
+            "new_value": 550000,
+            "timestamp": "2025-03-03 21:01:47"
+        },
+        {
+            "old_value": 550000,
+            "new_value": 500000,
+            "timestamp": "2025-03-03 21:02:15"
+        },
+        {
+            "old_value": 500000,
+            "new_value": 122222,
+            "timestamp": "2025-03-03 21:05:11"
+        }
+    ]
+}
